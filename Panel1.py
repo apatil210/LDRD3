@@ -326,9 +326,23 @@ try:
     df = load_excel(DATA_URL)
     bar_df = prepare_bar_data(df)
 
-    left_col, right_col = st.columns([1.1, 1.6], gap="large")
+    left_col, right_col = st.columns([1.6, 1.1], gap="large")
 
     with left_col:
+        st.subheader("Percent Annual Energy by Industrial Process")
+
+        with st.container(height=1000):
+            st.plotly_chart(
+                build_bar_chart(bar_df),
+                use_container_width=False,
+                theme=None,
+                config={
+                    "displayModeBar": False,
+                    "scrollZoom": False
+                }
+            )
+
+    with right_col:
         selected_process = st.selectbox(
             "Select an industrial process to generate a fact sheet",
             bar_df["Industrial process"].tolist()
@@ -353,20 +367,6 @@ try:
                 fact_sheet["Details"],
                 use_container_width=True,
                 hide_index=True
-            )
-
-    with right_col:
-        st.subheader("Percent Annual Energy by Industrial Process")
-
-        with st.container(height=1000):
-            st.plotly_chart(
-                build_bar_chart(bar_df),
-                use_container_width=False,
-                theme=None,
-                config={
-                    "displayModeBar": False,
-                    "scrollZoom": False
-                }
             )
 
 except Exception as e:
