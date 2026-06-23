@@ -238,6 +238,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     elec_col = "SEC \nelectricity"
     fuel_col = "SEC \nfuels"
     steam_col = "SEC \nfuels or electricity for steam or steam from CHP"
+    naics_col = "NAICS Code"
 
     efficiency_col = "Efficiency"
     process_temp_col = "Process temperature"
@@ -265,6 +266,16 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
         steam_col
     ]:
         selected_df[col] = pd.to_numeric(selected_df[col], errors="coerce")
+
+    naics_values = (
+        selected_df[naics_col]
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .loc[lambda s: s.ne("") & s.ne("nan") & s.ne("None")]
+        .unique()
+    )
+    naics_code = naics_values[0] if len(naics_values) > 0 else "N/A"
 
     production_values = (
         selected_df[production_col]
@@ -312,6 +323,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     return {
         "Annual Production": annual_production,
         "Annual Energy": annual_energy,
+        "NAICS Code": naics_code,
         "SEC Electricity": sec_electricity,
         "SEC Fuels": sec_fuels,
         "SEC Steam": sec_steam,
@@ -351,9 +363,10 @@ try:
         fact_sheet = build_fact_sheet(df, selected_process)
 
         if fact_sheet:
-            c1, c2 = st.columns(2)
+            c1, c2, c3 = st.columns(3)
             c1.metric("Annual Production (tonne/yr)", f"{fact_sheet['Annual Production']:.2f}")
             c2.metric("Annual Energy (PJ/yr)", f"{fact_sheet['Annual Energy']:.2f}")
+            c3.metric("NAICS Code", f"{fact_sheet['NAICS Code']}")
 
             st.subheader("Specific Energy Consumption (SEC)")
             st.plotly_chart(
