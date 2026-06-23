@@ -13,7 +13,7 @@ st.set_page_config(
 
 pio.templates.default = "plotly"
 
-DATA_URL = "https://raw.githubusercontent.com/apatil210/LDRD3/main/DatasetJune22.xlsx"
+DATA_URL = "https://raw.githubusercontent.com/apatil210/LDRD3/main/DatasetJune23.xlsx"
 
 TEXT_COLOR = "#14212B"
 PAPER_BG = "rgba(0,0,0,0)"
@@ -248,7 +248,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     outlet_pressure_col = "Outlet pressure"
     residence_time_col = "Residence time"
 
-    naics_idx = 39
+    naics_idx = 40
 
     fact_df = df.copy()
     fact_df[process_col] = clean_category(fact_df[process_col])
