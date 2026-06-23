@@ -238,7 +238,6 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     elec_col = "SEC \nelectricity"
     fuel_col = "SEC \nfuels"
     steam_col = "SEC \nfuels or electricity for steam or steam from CHP"
-    naics_col = "NAICS Code"
 
     efficiency_col = "Efficiency"
     process_temp_col = "Process temperature"
@@ -248,6 +247,8 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     inlet_pressure_col = "Inlet pressure"
     outlet_pressure_col = "Outlet pressure"
     residence_time_col = "Residence time"
+
+    naics_idx = 39
 
     fact_df = df.copy()
     fact_df[process_col] = clean_category(fact_df[process_col])
@@ -267,15 +268,15 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     ]:
         selected_df[col] = pd.to_numeric(selected_df[col], errors="coerce")
 
-    naics_values = (
-        selected_df[naics_col]
+    naics_series = (
+        selected_df.iloc[:, naics_idx]
         .dropna()
         .astype(str)
         .str.strip()
         .loc[lambda s: s.ne("") & s.ne("nan") & s.ne("None")]
         .unique()
     )
-    naics_code = naics_values[0] if len(naics_values) > 0 else "N/A"
+    naics_code = naics_series[0] if len(naics_series) > 0 else "N/A"
 
     production_values = (
         selected_df[production_col]
