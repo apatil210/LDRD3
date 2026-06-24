@@ -426,7 +426,7 @@ with left_col:
         fig_process.add_annotation(
             x=0.5,
             y=0.5,
-            text=f"<b>Totoal (PJ/yr)</b><br>{fmt_pj(top_process['Annual Energy'].sum())}",
+            text=f"<b>Total (PJ/yr)</b><br>{fmt_pj(top_process['Annual Energy'].sum())}",
             showarrow=False,
             font=dict(size=15, color="#2f3042"),
             xanchor="center",
