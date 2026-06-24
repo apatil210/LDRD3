@@ -6,7 +6,7 @@ from pathlib import Path
 st.set_page_config(page_title="US Manufacturing Energy Classification: Unit Operations", layout="wide")
 
 SHEET_NAME = "Process-level data"
-GITHUB_URL = "https://github.com/apatil210/LDRD2/raw/main/Modified%20Data%20for%20NAICS.xlsx"
+GITHUB_URL = "https://github.com/apatil210/LDRD2/raw/main/DatasheetJune24Part2.xlsx"
 LOCAL_FILE = "Modified-Data-for-NAICS.xlsx"
 
 EXPECTED = {
