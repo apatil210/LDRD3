@@ -232,6 +232,10 @@ if missing:
     st.write("Available columns:", list(df.columns))
     st.stop()
 
+if len(df.columns) <= 10:
+    st.error("Column K is not available in the loaded sheet.")
+    st.stop()
+
 naics_l1_col = cols["naics_l1"]
 naics_l2_col = cols["naics_l2"]
 industrial_process_col = cols["industrial_process"]
@@ -240,6 +244,8 @@ annual_energy_col = cols["annual_energy"]
 annual_electricity_col = cols["annual_electricity"]
 annual_fuels_col = cols["annual_fuels"]
 annual_steam_col = cols["annual_steam"]
+
+temperature_col = df.columns[10]  # Excel column K
 
 naics_options = sorted(df[naics_l1_col].dropna().astype(str).drop_duplicates().tolist())
 selected_naics = st.selectbox(
@@ -293,6 +299,27 @@ process_df = (
 )
 process_df = process_df[process_df["Annual Energy"] > 0].copy()
 process_df = process_df.sort_values("Annual Energy", ascending=False)
+
+temp_df = df_filtered[[temperature_col, annual_energy_col]].copy()
+temp_df.columns = ["Temperature", "Annual Energy"]
+temp_df["Temperature"] = pd.to_numeric(temp_df["Temperature"], errors="coerce")
+temp_df["Annual Energy"] = pd.to_numeric(temp_df["Annual Energy"], errors="coerce")
+temp_df = temp_df.dropna(subset=["Temperature"])
+temp_df = temp_df[temp_df["Annual Energy"] > 0].copy()
+
+temp_df["Temperature Range"] = pd.cut(
+    temp_df["Temperature"],
+    bins=[-float("inf"), 100, 200, 400, float("inf")],
+    labels=["<100 °C", "100-200 °C", "200-400 °C", ">400 °C"],
+    right=False,
+)
+
+temp_donut_df = (
+    temp_df.dropna(subset=["Temperature Range"])
+    .groupby("Temperature Range", as_index=False)["Annual Energy"]
+    .sum()
+)
+temp_donut_df = temp_donut_df[temp_donut_df["Annual Energy"] > 0].copy()
 
 st.markdown(
     f"""
@@ -377,7 +404,7 @@ with right_col:
         '<div class="section-title" style="font-size: 1.05rem; margin-top: 1.2rem;">Total Annual Energy Breakdown: Energy Source</div>',
         unsafe_allow_html=True,
     )
- 
+
     if not breakdown_df.empty:
         fig_donut = px.pie(
             breakdown_df,
@@ -419,10 +446,57 @@ with right_col:
         st.info("No annual energy breakdown is available for this selection.")
 
     st.markdown(
+        '<div class="section-title" style="font-size: 1.05rem; margin-top: 1.2rem;">Total Annual Energy Breakdown: Temperature</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not temp_donut_df.empty:
+        fig_temp = px.pie(
+            temp_donut_df,
+            names="Temperature Range",
+            values="Annual Energy",
+            hole=0.62,
+            color="Temperature Range",
+            color_discrete_map={
+                "<100 °C": "#70c1b3",
+                "100-200 °C": "#f6bd60",
+                "200-400 °C": "#f28482",
+                ">400 °C": "#6d597a",
+            },
+        )
+        fig_temp.update_traces(
+            textinfo="percent+label",
+            textposition="outside",
+            sort=False,
+            marker=dict(line=dict(color="#ffffff", width=2)),
+            hovertemplate="<b>%{label}</b><br>%{value:.2f} PJ<extra></extra>",
+        )
+        fig_temp.update_layout(
+            height=420,
+            margin=dict(t=10, b=10, l=10, r=10),
+            paper_bgcolor="#ffffff",
+            plot_bgcolor="#ffffff",
+            showlegend=False,
+            font=dict(color="#2f3042", family="Inter, sans-serif", size=13),
+        )
+        fig_temp.add_annotation(
+            x=0.5,
+            y=0.5,
+            text=f"<b>Total (PJ/yr)</b><br>{fmt_pj(temp_donut_df['Annual Energy'].sum())}",
+            showarrow=False,
+            font=dict(size=16, color="#2f3042"),
+            xanchor="center",
+            yanchor="middle",
+        )
+        st.plotly_chart(fig_temp, use_container_width=True)
+    else:
+        st.info("No annual energy by temperature data is available for this selection.")
+
+    st.markdown(
         '<div class="section-title" style="font-size: 1.05rem; margin-top: 1.2rem;">Total Annual Energy Breakdown: Industrial Process</div>',
         unsafe_allow_html=True,
     )
-   
+
     if not process_df.empty:
         top_process = process_df.head(8).copy()
         fig_process = px.bar(
