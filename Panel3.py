@@ -352,10 +352,7 @@ with left_col:
         '<div class="section-title">Total Annual Energy Breakdown: NAICS 6-digit Code</div>',
         unsafe_allow_html=True,
     )
-    st.markdown(
-        f'<div class="coverage-note">Selected sector: {selected_naics} · Total sector coverage: {coverage_text}</div>',
-        unsafe_allow_html=True,
-    )
+   
 
     if not naics_donut_df.empty:
         fig_naics = px.pie(
