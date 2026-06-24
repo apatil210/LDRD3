@@ -237,20 +237,37 @@ def build_sec_donut(fact_sheet: dict):
     return fig
 
 
-def build_temp_sec_donut(fact_sheet: dict):
-    donut_df = fact_sheet["Temperature SEC Breakdown"].copy()
+def build_temp_sec_donut(fact_sheet: dict, selected_temp_range: str):
+    temp_df = fact_sheet["Temperature SEC Breakdown"].copy()
+    row = temp_df[temp_df["Temperature Range"] == selected_temp_range].copy()
+
+    if row.empty:
+        donut_df = pd.DataFrame({
+            "SEC Type": ["SEC Electricity", "SEC Fuels", "SEC Steam"],
+            "Value": [0, 0, 0]
+        })
+    else:
+        donut_df = pd.DataFrame({
+            "SEC Type": ["SEC Electricity", "SEC Fuels", "SEC Steam"],
+            "Value": [
+                row["SEC Electricity"].iloc[0],
+                row["SEC Fuels"].iloc[0],
+                row["SEC Steam"].iloc[0]
+            ]
+        })
+
     donut_df = donut_df[donut_df["Value"] > 0].copy()
 
     fig = px.pie(
         donut_df,
-        names="Temperature Range",
+        names="SEC Type",
         values="Value",
         hole=0.62,
-        color="Temperature Range",
-        color_discrete_map=TEMP_COLOR_MAP
+        color="SEC Type",
+        color_discrete_map=SEC_COLOR_MAP
     )
 
-    total_sec = donut_df["Value"].sum()
+    total_sec = donut_df["Value"].sum() if not donut_df.empty else 0
 
     fig.update_traces(
         textposition="outside",
@@ -296,7 +313,6 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
 
     sec_total_col = "SEC"
 
-    # Excel columns W, X, Y -> zero-based positions 22, 23, 24
     elec_idx = 22
     fuel_idx = 23
     steam_idx = 24
@@ -372,9 +388,12 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     sec_fuels = selected_df.iloc[:, fuel_idx].fillna(0).sum()
     sec_steam = selected_df.iloc[:, steam_idx].fillna(0).sum()
 
-    temp_sec_df = selected_df[["Temp for Donut", "Row SEC Total"]].copy()
+    temp_sec_df = selected_df[["Temp for Donut"]].copy()
+    temp_sec_df["SEC Electricity"] = selected_df.iloc[:, elec_idx].fillna(0)
+    temp_sec_df["SEC Fuels"] = selected_df.iloc[:, fuel_idx].fillna(0)
+    temp_sec_df["SEC Steam"] = selected_df.iloc[:, steam_idx].fillna(0)
+
     temp_sec_df = temp_sec_df.dropna(subset=["Temp for Donut"]).copy()
-    temp_sec_df = temp_sec_df[temp_sec_df["Row SEC Total"].fillna(0) > 0].copy()
 
     temp_sec_df["Temperature Range"] = pd.cut(
         temp_sec_df["Temp for Donut"],
@@ -384,9 +403,11 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     )
 
     temp_breakdown = (
-        temp_sec_df.groupby("Temperature Range", observed=False, as_index=False)["Row SEC Total"]
+        temp_sec_df.groupby("Temperature Range", observed=False)[
+            ["SEC Electricity", "SEC Fuels", "SEC Steam"]
+        ]
         .sum()
-        .rename(columns={"Row SEC Total": "Value"})
+        .reset_index()
     )
 
     all_ranges = pd.DataFrame({
@@ -397,8 +418,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
         temp_breakdown,
         on="Temperature Range",
         how="left"
-    )
-    temp_breakdown["Value"] = temp_breakdown["Value"].fillna(0)
+    ).fillna(0)
 
     detail_df = pd.DataFrame({
         "Unit Operations": selected_df[unit_ops_col],
@@ -476,9 +496,15 @@ try:
                 config={"displayModeBar": False}
             )
 
-            st.caption("Categorization by Process Temperature")
+            temp_options = fact_sheet["Temperature SEC Breakdown"]["Temperature Range"].tolist()
+            selected_temp_range = st.selectbox(
+                "Select a temperature range",
+                temp_options
+            )
+
+            st.caption("Energy Source Mix Within Selected Temperature Range")
             st.plotly_chart(
-                build_temp_sec_donut(fact_sheet),
+                build_temp_sec_donut(fact_sheet, selected_temp_range),
                 use_container_width=True,
                 theme=None,
                 config={"displayModeBar": False}
