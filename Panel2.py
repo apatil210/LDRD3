@@ -48,27 +48,22 @@ COL_PERCENT_ENERGY = "Percent Annual energy demand in 2022"
 COL_ANNUAL_PRODUCTION = "Annual production in 2022\n(based on FU)"
 COL_ANNUAL_ENERGY = "Annual energy demand in 2022"
 
-COL_ANNUAL_ELECTRICITY = "Annual electricity demand in 2022"
-COL_ANNUAL_FUELS = "Annual fuels demand in 2022"
-COL_ANNUAL_STEAM = "Annual fuels or electricity for steam or steam from CHP demand in 2022"
-
 COL_SEC_ELECTRICITY = "SEC electricity"
 COL_SEC_FUELS = "SEC fuels"
 COL_SEC_STEAM = "SEC fuels or electricity for steam or steam from CHP"
 
 COL_EFFICIENCY = "Efficiency"
 COL_PROCESS_TEMP = "Process temperature"
-COL_PROCESS_TEMP_WEBPAGE = "Process Temperature for Webpage"
+COL_PROCESS_TEMP_WEB = "Process Temperature for Webpage"
 COL_INLET_TEMP = "Inlet temperature"
 COL_OUTLET_TEMP = "Outlet temperature"
 COL_PROCESS_PRESSURE = "Process pressure"
 COL_INLET_PRESSURE = "Inlet pressure"
 COL_OUTLET_PRESSURE = "Outlet pressure"
 COL_RESIDENCE_TIME = "Residence time"
-
 COL_NAICS = "NAICS Level 2 Code Number"
 
-DESCRIPTION_COLUMN_INDEX = 4  # Excel Column E (0-based index in pandas)
+DESCRIPTION_COLUMN_INDEX = 4  # Excel Column E (0-based index after parsing)
 
 # ----------------------------
 # Header utilities
@@ -99,6 +94,57 @@ def find_matching_column(df: pd.DataFrame, target: str) -> str:
         f"Could not find required column: {target}\nAvailable columns:\n{available}"
     )
 
+# ----------------------------
+# Cleaning utilities
+# ----------------------------
+def clean_category(series: pd.Series) -> pd.Series:
+    return (
+        series.astype(str)
+        .str.replace("\xa0", " ", regex=False)
+        .str.strip()
+        .replace({
+            "": "Unknown",
+            "nan": "Unknown",
+            "None": "Unknown"
+        })
+    )
+
+
+def clean_naics(series: pd.Series) -> pd.Series:
+    return (
+        series.astype(str)
+        .str.replace("\xa0", " ", regex=False)
+        .str.strip()
+        .replace({
+            "": "Unknown",
+            "nan": "Unknown",
+            "None": "Unknown"
+        })
+    )
+
+
+def clean_text(series: pd.Series) -> pd.Series:
+    return (
+        series.astype(str)
+        .str.replace("\xa0", " ", regex=False)
+        .str.strip()
+        .replace({
+            "": "Unknown",
+            "nan": "Unknown",
+            "None": "Unknown"
+        })
+    )
+
+
+def to_numeric_safe(series: pd.Series) -> pd.Series:
+    cleaned = (
+        series.astype(str)
+        .str.replace("\xa0", "", regex=False)
+        .str.replace(",", "", regex=False)
+        .str.replace("%", "", regex=False)
+        .str.strip()
+    )
+    return pd.to_numeric(cleaned, errors="coerce")
 
 # ----------------------------
 # Data loading
@@ -132,56 +178,6 @@ def load_excel_data(url: str) -> pd.DataFrame:
     df = df.reset_index(drop=True)
 
     return df
-
-
-# ----------------------------
-# Utility functions
-# ----------------------------
-def clean_category(series: pd.Series) -> pd.Series:
-    return (
-        series.astype(str)
-        .str.strip()
-        .replace({
-            "": "Unknown",
-            "nan": "Unknown",
-            "None": "Unknown"
-        })
-    )
-
-
-def clean_naics(series: pd.Series) -> pd.Series:
-    return (
-        series.astype(str)
-        .str.strip()
-        .replace({
-            "": "Unknown",
-            "nan": "Unknown",
-            "None": "Unknown"
-        })
-    )
-
-
-def clean_text(series: pd.Series) -> pd.Series:
-    return (
-        series.astype(str)
-        .str.strip()
-        .replace({
-            "": "Unknown",
-            "nan": "Unknown",
-            "None": "Unknown"
-        })
-    )
-
-
-def to_numeric_safe(series: pd.Series) -> pd.Series:
-    cleaned = (
-        series.astype(str)
-        .str.replace("%", "", regex=False)
-        .str.replace(",", "", regex=False)
-        .str.strip()
-    )
-    return pd.to_numeric(cleaned, errors="coerce")
-
 
 # ----------------------------
 # Data preparation
@@ -225,7 +221,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     annual_prod_col = find_matching_column(df, COL_ANNUAL_PRODUCTION)
     annual_energy_col = find_matching_column(df, COL_ANNUAL_ENERGY)
 
-    # Fixed parsed columns for AW, AX, AY as used in your workbook
+    # Keep your existing AW/AX/AY positional assumption
     if len(df.columns) <= 50:
         raise KeyError(
             "Expected Excel columns AW, AX, and AY, but the sheet has fewer than 51 columns after parsing."
@@ -240,11 +236,8 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     sec_steam_col = find_matching_column(df, COL_SEC_STEAM)
 
     efficiency_col = find_matching_column(df, COL_EFFICIENCY)
-
-    # Explicitly use the Excel header: "Process Temperature for Webpage"
-    process_temp_web_col = find_matching_column(df, COL_PROCESS_TEMP_WEBPAGE)
-
     process_temp_col = find_matching_column(df, COL_PROCESS_TEMP)
+    process_temp_web_col = find_matching_column(df, COL_PROCESS_TEMP_WEB)
     inlet_temp_col = find_matching_column(df, COL_INLET_TEMP)
     outlet_temp_col = find_matching_column(df, COL_OUTLET_TEMP)
     process_pressure_col = find_matching_column(df, COL_PROCESS_PRESSURE)
@@ -258,7 +251,8 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     fact_df[l3_col] = clean_category(fact_df[l3_col])
     fact_df[naics_col] = clean_naics(fact_df[naics_col])
 
-    selected_df = fact_df[fact_df[l2_col] == selected_l2].copy()
+    selected_l2_clean = str(selected_l2).replace("\xa0", " ").strip()
+    selected_df = fact_df[fact_df[l2_col] == selected_l2_clean].copy()
 
     if selected_df.empty:
         return None
@@ -288,7 +282,6 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
 
     annual_production = production_values[0] if len(production_values) > 0 else 0
     annual_energy = selected_df[annual_energy_col].fillna(0).sum()
-
     annual_electricity = selected_df[annual_elec_col].fillna(0).sum()
     annual_fuels = selected_df[annual_fuels_col].fillna(0).sum()
     annual_steam = selected_df[annual_steam_col].fillna(0).sum()
@@ -300,32 +293,35 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         )
 
     description_col = selected_df.columns[DESCRIPTION_COLUMN_INDEX]
+    selected_df[description_col] = clean_text(selected_df[description_col])
 
-    # Corrected: use the named header "Process Temperature for Webpage"
+    # Temperature donut uses the exact named column requested
     temp_energy_df = pd.DataFrame({
-        "Temperature Raw": to_numeric_safe(selected_df[process_temp_web_col]),
-        "Annual Energy": to_numeric_safe(selected_df[annual_energy_col]),
-    }).dropna(subset=["Temperature Raw", "Annual Energy"])
+        "Temperature Raw": selected_df[process_temp_web_col],
+        "Annual Energy": selected_df[annual_energy_col],
+    }).copy()
 
+    temp_energy_df = temp_energy_df.dropna(subset=["Temperature Raw", "Annual Energy"])
     temp_energy_df = temp_energy_df[temp_energy_df["Annual Energy"] > 0].copy()
 
-    temp_energy_df["Temperature Level"] = pd.cut(
-        temp_energy_df["Temperature Raw"],
-        bins=[-float("inf"), 100, 200, 400, float("inf")],
-        labels=["<100 °C", "100-200 °C", "200-400 °C", ">400 °C"],
-        right=False
-    )
+    if not temp_energy_df.empty:
+        temp_energy_df["Temperature Level"] = pd.cut(
+            temp_energy_df["Temperature Raw"],
+            bins=[-float("inf"), 100, 200, 400, float("inf")],
+            labels=["<100 °C", "100-200 °C", "200-400 °C", ">400 °C"],
+            right=False
+        )
 
-    temp_breakdown_df = (
-        temp_energy_df.groupby("Temperature Level", observed=False)["Annual Energy"]
-        .sum()
-        .reset_index()
-        .rename(columns={"Annual Energy": "Value"})
-    )
+        temp_breakdown_df = (
+            temp_energy_df.groupby("Temperature Level", observed=False)["Annual Energy"]
+            .sum()
+            .reset_index()
+            .rename(columns={"Annual Energy": "Value"})
+        )
 
-    temp_breakdown_df = temp_breakdown_df[temp_breakdown_df["Value"] > 0].copy()
-
-    selected_df[description_col] = clean_text(selected_df[description_col])
+        temp_breakdown_df = temp_breakdown_df[temp_breakdown_df["Value"] > 0].copy()
+    else:
+        temp_breakdown_df = pd.DataFrame(columns=["Temperature Level", "Value"])
 
     detail_df = selected_df[
         [
@@ -363,6 +359,14 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         residence_time_col: "Residence time (sec)",
     })
 
+    debug_temp_df = selected_df[[l2_col, l3_col, process_temp_web_col, annual_energy_col]].copy()
+    debug_temp_df = debug_temp_df.rename(columns={
+        l2_col: "Selected L2",
+        l3_col: "Industrial process",
+        process_temp_web_col: "Process Temperature for Webpage",
+        annual_energy_col: "Annual Energy"
+    })
+
     return {
         "Annual Production": annual_production,
         "Annual Energy": annual_energy,
@@ -373,8 +377,8 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         "Rows": len(selected_df),
         "Details": detail_df,
         "Temperature Source Column": process_temp_web_col,
+        "Debug Temp Energy": debug_temp_df,
     }
-
 
 # ----------------------------
 # Chart builders
@@ -539,7 +543,6 @@ def build_temperature_donut(fact_sheet: dict):
 
     return fig
 
-
 # ----------------------------
 # App UI
 # ----------------------------
@@ -602,6 +605,9 @@ try:
                     f"No positive annual energy values with valid "
                     f"'{fact_sheet['Temperature Source Column']}' temperatures are available for the selected category."
                 )
+
+            with st.expander("Debug temperature inputs", expanded=False):
+                st.dataframe(fact_sheet["Debug Temp Energy"], use_container_width=True)
 
             st.dataframe(
                 fact_sheet["Details"],
