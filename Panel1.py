@@ -376,7 +376,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     temp_sec_df["Temperature Range"] = pd.cut(
         temp_sec_df["Temp for Donut"],
         bins=[float("-inf"), 100, 200, 400, float("inf")],
-        labels=["<100°C", "100-200°C", "200-400°C", ">400°C"],
+        labels=["<100 C", "100-200 C", "200-400 C", ">400 C"],
         right=False
     )
 
