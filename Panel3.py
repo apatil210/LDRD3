@@ -6,7 +6,10 @@ st.set_page_config(
     page_title="US Manufacturing Energy 2022 Classification: Unit Operations",
     layout="wide",
 )
-
+st.markdown(
+    '<div class="page-title">US Manufacturing Energy 2022 Classification: Unit Operations</div>',
+    unsafe_allow_html=True,
+)
 SHEET_NAME = "Process-level data"
 LOCAL_FILE = "DatasetJune24Part2.xlsx"
 
@@ -252,10 +255,7 @@ process_df = (
 process_df = process_df[process_df["Annual Energy"] > 0].copy()
 process_df = process_df.sort_values("Annual Energy", ascending=False)
 
-st.markdown(
-    '<div class="page-title">US Manufacturing Energy 2022 Classification: Unit Operations</div>',
-    unsafe_allow_html=True,
-)
+
 
 st.markdown(
     f"""
