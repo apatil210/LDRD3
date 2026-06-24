@@ -35,7 +35,7 @@ ENERGY_COLOR_MAP = {
 # Exact workbook column names
 # ----------------------------
 COL_L2 = "Unit operation (Level 2 classification)"
-COL_L3 = "Unit operation (Level 3 classification; with details)"
+COL_L3 = "Industrial process"
 COL_PERCENT_ENERGY = "Percent Annual energy demand in 2022"
 
 COL_ANNUAL_PRODUCTION = "Annual production in 2022\n(based on FU)"
@@ -57,6 +57,7 @@ COL_PROCESS_PRESSURE = "Process pressure"
 COL_INLET_PRESSURE = "Inlet pressure"
 COL_OUTLET_PRESSURE = "Outlet pressure"
 COL_RESIDENCE_TIME = "Residence time"
+COL_NAICS = "NAICS Code"
 
 
 # ----------------------------
@@ -168,9 +169,6 @@ def prepare_bar_data(df: pd.DataFrame) -> pd.DataFrame:
 
     grouped_df = grouped_df[grouped_df[pct_col] != 0].copy()
 
-    # If the source values are already percent numbers like 3.9846,
-    # display them directly. If they are fractions like 0.039846,
-    # convert to percent.
     max_abs_val = grouped_df[pct_col].abs().max()
     if pd.notna(max_abs_val) and max_abs_val <= 1:
         grouped_df["Display Percent"] = grouped_df[pct_col] * 100
@@ -189,7 +187,7 @@ def prepare_bar_data(df: pd.DataFrame) -> pd.DataFrame:
 
 def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     l2_col = find_matching_column(df, COL_L2)
-    l3_col = find_matching_column(df, "Industrial process")
+    l3_col = find_matching_column(df, COL_L3)
     annual_prod_col = find_matching_column(df, COL_ANNUAL_PRODUCTION)
     annual_energy_col = find_matching_column(df, COL_ANNUAL_ENERGY)
 
@@ -209,10 +207,12 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     inlet_pressure_col = find_matching_column(df, COL_INLET_PRESSURE)
     outlet_pressure_col = find_matching_column(df, COL_OUTLET_PRESSURE)
     residence_time_col = find_matching_column(df, COL_RESIDENCE_TIME)
+    naics_col = find_matching_column(df, COL_NAICS)
 
     fact_df = df.copy()
     fact_df[l2_col] = clean_category(fact_df[l2_col])
     fact_df[l3_col] = clean_category(fact_df[l3_col])
+    fact_df[naics_col] = clean_category(fact_df[naics_col])
 
     selected_df = fact_df[fact_df[l2_col] == selected_l2].copy()
 
@@ -250,6 +250,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     detail_df = selected_df[
         [
             l3_col,
+            naics_col,
             sec_elec_col,
             sec_fuels_col,
             sec_steam_col,
@@ -264,6 +265,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         ]
     ].rename(columns={
         l3_col: "List of Industry Application",
+        naics_col: "NAICS Code",
         sec_elec_col: "SEC Electricity (GJ/t)",
         sec_fuels_col: "SEC Fuels (GJ/t)",
         sec_steam_col: "SEC Steam (GJ/t)",
@@ -332,11 +334,7 @@ def build_bar_chart(df: pd.DataFrame):
     )
 
     fig.update_xaxes(showgrid=True, automargin=True)
-    fig.update_yaxes(
-        categoryorder="total ascending",
-        automargin=True,
-        ticklabelstandoff=40
-    )
+    fig.update_yaxes(categoryorder="total ascending", automargin=True, ticklabelstandoff=40)
 
     return fig
 
@@ -412,24 +410,9 @@ try:
     df = load_excel_data(DATA_URL)
     bar_df = prepare_bar_data(df)
 
-    # Bar chart on the left, controls/details on the right
-    left_col, right_col = st.columns([1.6, 1.1], gap="large")
+    left_col, right_col = st.columns([1.1, 1.6], gap="large")
 
     with left_col:
-        st.subheader("Percent Annual Energy by Unit Operation Classification")
-
-        # with st.container(height=1000):
-        st.plotly_chart(
-                build_bar_chart(bar_df),
-                use_container_width=True,
-                theme=None,
-                config={
-                    "displayModeBar": False,
-                    "scrollZoom": False
-                }
-            )
-
-    with right_col:
         selected_l2 = st.selectbox(
             "Select a unit operation (Level 2 classification) to generate a fact sheet",
             bar_df["Unit operation (Level 2 classification)"].tolist()
@@ -465,6 +448,20 @@ try:
                 fact_sheet["Details"],
                 use_container_width=True,
                 hide_index=True
+            )
+
+    with right_col:
+        st.subheader("Percent Annual Energy by Unit Operation Classification")
+
+        with st.container(height=1000):
+            st.plotly_chart(
+                build_bar_chart(bar_df),
+                use_container_width=False,
+                theme=None,
+                config={
+                    "displayModeBar": False,
+                    "scrollZoom": False
+                }
             )
 
 except Exception as e:
