@@ -272,22 +272,22 @@ breakdown_df = pd.DataFrame(
 )
 breakdown_df = breakdown_df[breakdown_df["Value"] > 0].copy()
 
-bar_df = df_filtered[[naics_l2_col, annual_energy_col]].copy()
-bar_df[annual_energy_col] = pd.to_numeric(bar_df[annual_energy_col], errors="coerce")
-bar_df = (
-    bar_df.dropna(subset=[naics_l2_col, annual_energy_col])
+naics_donut_df = df_filtered[[naics_l2_col, annual_energy_col]].copy()
+naics_donut_df[annual_energy_col] = pd.to_numeric(naics_donut_df[annual_energy_col], errors="coerce")
+naics_donut_df = (
+    naics_donut_df.dropna(subset=[naics_l2_col, annual_energy_col])
     .groupby(naics_l2_col, as_index=False)[annual_energy_col]
     .sum()
     .rename(columns={naics_l2_col: "NAICS Level 2", annual_energy_col: "Annual Energy"})
 )
-bar_df = bar_df[bar_df["Annual Energy"] > 0].copy()
-bar_df = bar_df.sort_values("Annual Energy", ascending=False)
+naics_donut_df = naics_donut_df[naics_donut_df["Annual Energy"] > 0].copy()
+naics_donut_df = naics_donut_df.sort_values("Annual Energy", ascending=False)
 
-bar_total = bar_df["Annual Energy"].sum()
-if bar_total > 0:
-    bar_df["Percent"] = (bar_df["Annual Energy"] / bar_total) * 100
+naics_total = naics_donut_df["Annual Energy"].sum()
+if naics_total > 0:
+    naics_donut_df["Percent"] = (naics_donut_df["Annual Energy"] / naics_total) * 100
 else:
-    bar_df["Percent"] = 0.0
+    naics_donut_df["Percent"] = 0.0
 
 process_df = df_filtered[[industrial_process_col, annual_energy_col]].copy()
 process_df[annual_energy_col] = pd.to_numeric(process_df[annual_energy_col], errors="coerce")
@@ -357,45 +357,39 @@ with left_col:
         unsafe_allow_html=True,
     )
 
-    if not bar_df.empty:
-        display_bar = bar_df.sort_values("Percent", ascending=True).copy()
-
-        fig_bar = px.bar(
-            display_bar,
-            x="Percent",
-            y="NAICS Level 2",
-            orientation="h",
-            text=display_bar["Percent"].map(fmt_pct),
+    if not naics_donut_df.empty:
+        fig_naics = px.pie(
+            naics_donut_df,
+            names="NAICS Level 2",
+            values="Annual Energy",
+            hole=0.62,
+            color_discrete_sequence=px.colors.sequential.Tealgrn,
         )
-        fig_bar.update_traces(
-            marker_color="#0f7c7c",
+        fig_naics.update_traces(
+            textinfo="percent+label",
             textposition="outside",
-            cliponaxis=False,
-            hovertemplate="<b>%{y}</b><br>%{x:.2f}% of selected NAICS<extra></extra>",
+            sort=False,
+            marker=dict(line=dict(color="#ffffff", width=2)),
+            hovertemplate="<b>%{label}</b><br>%{percent} of selected NAICS<br>%{value:.2f} PJ<extra></extra>",
         )
-        fig_bar.update_layout(
-            height=max(520, len(display_bar) * 34),
+        fig_naics.update_layout(
+            height=520,
             paper_bgcolor="#ffffff",
             plot_bgcolor="#ffffff",
-            margin=dict(t=10, b=20, l=160, r=55),
-            xaxis_title="",
-            yaxis_title="",
-            font=dict(color="#2f3042", family="Inter, sans-serif", size=14),
+            margin=dict(t=10, b=20, l=10, r=10),
             showlegend=False,
+            font=dict(color="#2f3042", family="Inter, sans-serif", size=13),
         )
-        fig_bar.update_xaxes(
-            showgrid=False,
-            showticklabels=False,
-            zeroline=False,
-            visible=False,
+        fig_naics.add_annotation(
+            x=0.5,
+            y=0.5,
+            text=f"<b>Total (PJ/yr)</b><br>{fmt_pj(naics_total)}",
+            showarrow=False,
+            font=dict(size=16, color="#2f3042"),
+            xanchor="center",
+            yanchor="middle",
         )
-        fig_bar.update_yaxes(
-            showgrid=False,
-            ticks="",
-            categoryorder="array",
-            categoryarray=display_bar["NAICS Level 2"].tolist(),
-        )
-        st.plotly_chart(fig_bar, use_container_width=True)
+        st.plotly_chart(fig_naics, use_container_width=True)
     else:
         st.info("No NAICS Level 2 annual energy data is available for this selection.")
 
@@ -406,32 +400,38 @@ with left_col:
 
     if not process_df.empty:
         top_process = process_df.head(8).copy()
-        fig_process = px.bar(
-            top_process.sort_values("Annual Energy", ascending=True),
-            x="Annual Energy",
-            y="Industrial process",
-            orientation="h",
-            text="Annual Energy",
+
+        fig_process = px.pie(
+            top_process,
+            names="Industrial process",
+            values="Annual Energy",
+            hole=0.62,
+            color_discrete_sequence=px.colors.sequential.RdPu,
         )
         fig_process.update_traces(
-            marker_color="#e85d75",
-            texttemplate="%{text:.1f}",
+            textinfo="percent+label",
             textposition="outside",
-            cliponaxis=False,
-            hovertemplate="<b>%{y}</b><br>%{x:.2f} PJ<extra></extra>",
+            sort=False,
+            marker=dict(line=dict(color="#ffffff", width=2)),
+            hovertemplate="<b>%{label}</b><br>%{value:.2f} PJ<extra></extra>",
         )
         fig_process.update_layout(
             height=360,
             paper_bgcolor="#ffffff",
             plot_bgcolor="#ffffff",
-            margin=dict(t=0, b=10, l=140, r=40),
-            xaxis_title="",
-            yaxis_title="",
-            font=dict(color="#2f3042", family="Inter, sans-serif", size=13),
+            margin=dict(t=0, b=10, l=10, r=10),
             showlegend=False,
+            font=dict(color="#2f3042", family="Inter, sans-serif", size=13),
         )
-        fig_process.update_xaxes(showgrid=False, showticklabels=False, visible=False)
-        fig_process.update_yaxes(showgrid=False, ticks="")
+        fig_process.add_annotation(
+            x=0.5,
+            y=0.5,
+            text=f"<b>Top 8</b><br>{fmt_pj(top_process['Annual Energy'].sum())} PJ",
+            showarrow=False,
+            font=dict(size=15, color="#2f3042"),
+            xanchor="center",
+            yanchor="middle",
+        )
         st.plotly_chart(fig_process, use_container_width=True)
     else:
         st.info("No industrial process annual energy data is available for this selection.")
