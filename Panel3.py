@@ -66,23 +66,26 @@ def fmt_pct(x):
     return f"{x:.1f}%"
 
 
+df = load_data()
+cols, missing = resolve_columns(df)
+
 st.markdown(
     """
     <style>
     .stApp {
         font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: white;
+        background: #ffffff;
         color: #2f3042;
     }
 
     [data-testid="stAppViewContainer"],
     .main,
     .block-container {
-        background: white !important;
+        background: #ffffff !important;
     }
 
     [data-testid="stHeader"] {
-        background: white !important;
+        background: #ffffff !important;
     }
 
     .block-container {
@@ -133,7 +136,7 @@ st.markdown(
 
     .metric-card {
         flex: 1 1 220px;
-        background: white;
+        background: #ffffff;
         border: 1px solid #e3e1ea;
         border-radius: 14px;
         padding: 0.95rem 1rem;
@@ -161,8 +164,8 @@ st.markdown(
     }
 
     div[data-baseweb="select"] > div {
-        background: white !important;
-        border: 1px solid #efedf3 !important;
+        background: #ffffff !important;
+        border: 1px solid #dcdde3 !important;
         border-radius: 10px !important;
         min-height: 44px;
         box-shadow: none !important;
@@ -238,9 +241,6 @@ st.markdown(
     '<div class="page-title">US Manufacturing Energy 2022 Classification: Unit Operations</div>',
     unsafe_allow_html=True,
 )
-
-df = load_data()
-cols, missing = resolve_columns(df)
 
 if missing:
     st.error("Missing required columns: " + ", ".join(missing))
@@ -363,8 +363,8 @@ with left_col:
         )
         fig_bar.update_layout(
             height=max(520, len(display_bar) * 34),
-            paper_bgcolor="#f3f3f6",
-            plot_bgcolor="#f3f3f6",
+            paper_bgcolor="#ffffff",
+            plot_bgcolor="#ffffff",
             margin=dict(t=10, b=20, l=160, r=55),
             xaxis_title="",
             yaxis_title="",
@@ -426,13 +426,13 @@ with right_col:
             textinfo="percent+label",
             textposition="outside",
             sort=False,
-            marker=dict(line=dict(color="#f3f3f6", width=2)),
+            marker=dict(line=dict(color="#ffffff", width=2)),
         )
         fig_donut.update_layout(
             height=420,
             margin=dict(t=10, b=10, l=10, r=10),
-            paper_bgcolor="#f3f3f6",
-            plot_bgcolor="#f3f3f6",
+            paper_bgcolor="#ffffff",
+            plot_bgcolor="#ffffff",
             showlegend=False,
             font=dict(color="#2f3042", family="Inter, sans-serif", size=13),
         )
@@ -472,8 +472,8 @@ with right_col:
         )
         fig_process.update_layout(
             height=320,
-            paper_bgcolor="#f3f3f6",
-            plot_bgcolor="#f3f3f6",
+            paper_bgcolor="#ffffff",
+            plot_bgcolor="#ffffff",
             margin=dict(t=0, b=10, l=120, r=40),
             xaxis_title="",
             yaxis_title="",
