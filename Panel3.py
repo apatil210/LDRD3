@@ -3,15 +3,17 @@ import pandas as pd
 import plotly.express as px
 from pathlib import Path
 
-st.set_page_config(page_title="US Manufacturing Energy Classification: Unit Operations", layout="wide")
+st.set_page_config(
+    page_title="US Manufacturing Energy Classification: Unit Operations",
+    layout="wide",
+)
 
 SHEET_NAME = "Process-level data"
-GITHUB_URL = "https://github.com/apatil210/LDRD2/raw/main/DatasheetJune24Part2.xlsx"
-LOCAL_FILE = "Modified-Data-for-NAICS.xlsx"
+LOCAL_FILE = "DatasetJune24Part2.xlsx"
 
 EXPECTED = {
-    "naics_l1": "NAICS Level 1",
-    "naics_l2": "NAICS Level 2",
+    "naics_l2": "NAICS Level 2",   # column AR
+    "naics_l1": "NAICS Level 1",   # column AS
     "industrial_process": "Industrial process",
     "coverage": "Percent Coverage of NAICS (3-digit) Sector",
     "annual_energy": "Annual energy demand in 2022",
@@ -25,8 +27,7 @@ def norm(x):
 
 @st.cache_data
 def load_data():
-    source = LOCAL_FILE if Path(LOCAL_FILE).exists() else GITHUB_URL
-    df = pd.read_excel(source, sheet_name=SHEET_NAME, header=1)
+    df = pd.read_excel(LOCAL_FILE, sheet_name=SHEET_NAME, header=1, engine="openpyxl")
     df.columns = [str(c).strip() for c in df.columns]
 
     if len(df) > 0:
@@ -38,43 +39,15 @@ def load_data():
     return df
 
 def resolve_columns(df):
-    norm_map = {norm(c): c for c in df.columns}
-    resolved, missing = {}, []
+    resolved = {}
+    missing = []
 
-    for k, expected in EXPECTED.items():
-        found = norm_map.get(norm(expected))
-        if found is None:
-            for c in df.columns:
-                cn = norm(c)
-                if k == "coverage" and "percent coverage of naics" in cn and "sector" in cn:
-                    found = c
-                    break
-                if k == "naics_l2" and cn.startswith("naics level 2"):
-                    found = c
-                    break
-                if k == "naics_l1" and cn.startswith("naics level 1"):
-                    found = c
-                    break
-                if k == "industrial_process" and "industrial process" in cn:
-                    found = c
-                    break
-                if k == "annual_energy" and cn.startswith("annual energy demand in 2022"):
-                    found = c
-                    break
-                if k == "annual_electricity" and cn.startswith("annual electricity demand in 2022"):
-                    found = c
-                    break
-                if k == "annual_fuels" and cn.startswith("annual fuels demand in 2022"):
-                    found = c
-                    break
-                if k == "annual_steam" and "annual fuels or electricity for steam" in cn and "demand in 2022" in cn:
-                    found = c
-                    break
-
-        if found is None:
-            missing.append(expected)
+    for key, expected_name in EXPECTED.items():
+        matches = [c for c in df.columns if norm(c) == norm(expected_name)]
+        if matches:
+            resolved[key] = matches[0]
         else:
-            resolved[k] = found
+            missing.append(expected_name)
 
     return resolved, missing
 
@@ -135,16 +108,16 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<h1>US Manufacturing Energy Classification: NAICS </h1>", unsafe_allow_html=True)
-st.write("Select a NAICS Level (3-digit code) sector to generate an energy fact sheet.")
+st.markdown("<h1>US Manufacturing Energy Classification: NAICS</h1>", unsafe_allow_html=True)
+st.write("Select a NAICS Level 1 (3-digit code) sector to generate an energy fact sheet.")
 
 if missing:
     st.error("Missing required columns: " + ", ".join(missing))
     st.write("Available columns:", list(df.columns))
     st.stop()
 
-naics_l1_col = cols["naics_l1"]
-naics_l2_col = cols["naics_l2"]
+naics_l1_col = cols["naics_l1"]                  # AS
+naics_l2_col = cols["naics_l2"]                  # AR
 industrial_process_col = cols["industrial_process"]
 coverage_col = cols["coverage"]
 annual_energy_col = cols["annual_energy"]
@@ -240,7 +213,7 @@ with left_col:
 
 with right_col:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Annual Energy Classification by NAICS (6-digit) code")
+    st.subheader("Annual Energy Classification by NAICS Level 2 code")
 
     if not bar_df.empty:
         bar_df = bar_df.sort_values("Annual Energy", ascending=True)
@@ -294,9 +267,4 @@ if not process_df.empty:
 else:
     st.info("No industrial process annual energy data is available for this selection.")
 
-st.markdown("</div>", unsafe_allow_html=True)
-
-st.markdown('<div class="card">', unsafe_allow_html=True)
-# st.subheader(f"Fact Sheet – {selected_naics}")
-# st.dataframe(df_filtered, use_container_width=True, height=500)
 st.markdown("</div>", unsafe_allow_html=True)
