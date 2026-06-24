@@ -58,7 +58,6 @@ COL_INLET_PRESSURE = "Inlet pressure"
 COL_OUTLET_PRESSURE = "Outlet pressure"
 COL_RESIDENCE_TIME = "Residence time"
 
-# This is the actual AT-related field from your workbook
 COL_NAICS = "NAICS Level 2 Code Number"
 
 
@@ -424,9 +423,24 @@ try:
     df = load_excel_data(DATA_URL)
     bar_df = prepare_bar_data(df)
 
-    left_col, right_col = st.columns([1.1, 1.6], gap="large")
+    # Bar chart moved to the LEFT, fact sheet moved to the RIGHT
+    left_col, right_col = st.columns([1.6, 1.1], gap="large")
 
     with left_col:
+        st.subheader("Percent Annual Energy by Unit Operation Classification")
+
+        with st.container(height=1000):
+            st.plotly_chart(
+                build_bar_chart(bar_df),
+                use_container_width=False,
+                theme=None,
+                config={
+                    "displayModeBar": False,
+                    "scrollZoom": False
+                }
+            )
+
+    with right_col:
         selected_l2 = st.selectbox(
             "Select a unit operation (Level 2 classification) to generate a fact sheet",
             bar_df["Unit operation (Level 2 classification)"].tolist()
@@ -462,20 +476,6 @@ try:
                 fact_sheet["Details"],
                 use_container_width=True,
                 hide_index=True
-            )
-
-    with right_col:
-        st.subheader("Percent Annual Energy by Unit Operation Classification")
-
-        with st.container(height=1000):
-            st.plotly_chart(
-                build_bar_chart(bar_df),
-                use_container_width=False,
-                theme=None,
-                config={
-                    "displayModeBar": False,
-                    "scrollZoom": False
-                }
             )
 
 except Exception as e:
