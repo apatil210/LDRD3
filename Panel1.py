@@ -482,25 +482,21 @@ try:
 
             st.subheader("Specific Energy Consumption (SEC)")
 
-            donut_col1, donut_col2 = st.columns(2)
+            st.caption("By SEC source")
+            st.plotly_chart(
+                build_sec_donut(fact_sheet),
+                use_container_width=True,
+                theme=None,
+                config={"displayModeBar": False}
+            )
 
-            with donut_col1:
-                st.caption("By SEC source")
-                st.plotly_chart(
-                    build_sec_donut(fact_sheet),
-                    use_container_width=True,
-                    theme=None,
-                    config={"displayModeBar": False}
-                )
-
-            with donut_col2:
-                st.caption("By process temperature range")
-                st.plotly_chart(
-                    build_temp_sec_donut(fact_sheet),
-                    use_container_width=True,
-                    theme=None,
-                    config={"displayModeBar": False}
-                )
+            st.caption("By process temperature range")
+            st.plotly_chart(
+                build_temp_sec_donut(fact_sheet),
+                use_container_width=True,
+                theme=None,
+                config={"displayModeBar": False}
+            )
 
             st.dataframe(
                 fact_sheet["Details"],
