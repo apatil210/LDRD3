@@ -67,8 +67,8 @@ COL_RESIDENCE_TIME = "Residence time"
 
 COL_NAICS = "NAICS Level 2 Code Number"
 
-TEMP_COLUMN_INDEX = 10  # Excel Column K (0-based index in pandas)
-
+TEMP_COLUMN_INDEX = 10   # Excel Column K (0-based index in pandas)
+DESCRIPTION_COLUMN_INDEX = 4  # Excel Column E (0-based index in pandas)
 
 # ----------------------------
 # Header utilities
@@ -150,6 +150,18 @@ def clean_category(series: pd.Series) -> pd.Series:
 
 
 def clean_naics(series: pd.Series) -> pd.Series:
+    return (
+        series.astype(str)
+        .str.strip()
+        .replace({
+            "": "Unknown",
+            "nan": "Unknown",
+            "None": "Unknown"
+        })
+    )
+
+
+def clean_text(series: pd.Series) -> pd.Series:
     return (
         series.astype(str)
         .str.strip()
@@ -285,6 +297,14 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
             f"but the parsed sheet has only {len(selected_df.columns)} columns."
         )
 
+    if len(selected_df.columns) <= DESCRIPTION_COLUMN_INDEX:
+        raise KeyError(
+            f"Expected description source at Excel Column E (index {DESCRIPTION_COLUMN_INDEX}), "
+            f"but the parsed sheet has only {len(selected_df.columns)} columns."
+        )
+
+    description_col = selected_df.columns[DESCRIPTION_COLUMN_INDEX]
+
     temp_energy_df = pd.DataFrame({
         "Temperature Raw": to_numeric_safe(selected_df.iloc[:, TEMP_COLUMN_INDEX]),
         "Annual Energy": to_numeric_safe(selected_df[annual_energy_col]),
@@ -306,9 +326,12 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
 
     temp_breakdown_df = temp_breakdown_df[temp_breakdown_df["Value"] > 0].copy()
 
+    selected_df[description_col] = clean_text(selected_df[description_col])
+
     detail_df = selected_df[
         [
             l3_col,
+            description_col,
             naics_col,
             sec_elec_col,
             sec_fuels_col,
@@ -324,6 +347,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         ]
     ].rename(columns={
         l3_col: "List of Industry Application",
+        description_col: "Description",
         naics_col: "NAICS Code",
         sec_elec_col: "SEC Electricity (GJ/t)",
         sec_fuels_col: "SEC Fuels (GJ/t)",
@@ -527,7 +551,7 @@ try:
 
     with left_col:
         st.subheader("Percent Annual Energy by Unit Operation Classification")
-        
+
         st.plotly_chart(
             build_bar_chart(bar_df),
             use_container_width=False,
@@ -563,7 +587,6 @@ try:
             else:
                 st.info("No positive annual energy values available for the selected category.")
 
-            # st.subheader("Annual Energy by Temperature Level")
             st.caption("Categorization by Process Temperature")
             temp_donut_fig = build_temperature_donut(fact_sheet)
 
