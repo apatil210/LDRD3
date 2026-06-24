@@ -203,21 +203,25 @@ def build_sec_donut(fact_sheet: dict):
 
     fig.update_traces(
         textposition="outside",
-        texttemplate="%{label}<br>%{percent}",
+        texttemplate="%{label} %{percent}",
         hovertemplate=(
             "<b>%{label}</b><br>"
-            "Value: %{value:.3f}<br>"
+            "Value: %{value:.3f} GJ/t<br>"
             "Share: %{percent}<extra></extra>"
         ),
-        marker=dict(line=dict(color="#FFFFFF", width=2))
+        marker=dict(line=dict(color="#FFFFFF", width=2)),
+        automargin=True,
+        sort=False
     )
 
     fig.update_layout(
         height=360,
-        margin=dict(t=20, l=20, r=20, b=20),
+        margin=dict(t=30, l=30, r=30, b=30),
         paper_bgcolor=PAPER_BG,
         plot_bgcolor=PLOT_BG,
         showlegend=False,
+        uniformtext_minsize=12,
+        uniformtext_mode="hide",
         font=dict(
             family="Arial, sans-serif",
             color=TEXT_COLOR,
@@ -229,6 +233,8 @@ def build_sec_donut(fact_sheet: dict):
                 x=0.5,
                 y=0.5,
                 showarrow=False,
+                xanchor="center",
+                yanchor="middle",
                 font=dict(size=16, color=TEXT_COLOR)
             )
         ]
@@ -254,21 +260,25 @@ def build_temp_sec_donut(fact_sheet: dict):
 
     fig.update_traces(
         textposition="outside",
-        texttemplate="%{label}<br>%{percent}",
+        texttemplate="%{label} %{percent}",
         hovertemplate=(
             "<b>%{label}</b><br>"
             "Value: %{value:.3f} GJ/t<br>"
             "Share: %{percent}<extra></extra>"
         ),
-        marker=dict(line=dict(color="#FFFFFF", width=2))
+        marker=dict(line=dict(color="#FFFFFF", width=2)),
+        automargin=True,
+        sort=False
     )
 
     fig.update_layout(
         height=360,
-        margin=dict(t=20, l=20, r=20, b=20),
+        margin=dict(t=30, l=30, r=30, b=30),
         paper_bgcolor=PAPER_BG,
         plot_bgcolor=PLOT_BG,
         showlegend=False,
+        uniformtext_minsize=12,
+        uniformtext_mode="hide",
         font=dict(
             family="Arial, sans-serif",
             color=TEXT_COLOR,
@@ -280,6 +290,8 @@ def build_temp_sec_donut(fact_sheet: dict):
                 x=0.5,
                 y=0.5,
                 showarrow=False,
+                xanchor="center",
+                yanchor="middle",
                 font=dict(size=16, color=TEXT_COLOR)
             )
         ]
