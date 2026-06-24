@@ -57,7 +57,9 @@ COL_PROCESS_PRESSURE = "Process pressure"
 COL_INLET_PRESSURE = "Inlet pressure"
 COL_OUTLET_PRESSURE = "Outlet pressure"
 COL_RESIDENCE_TIME = "Residence time"
-COL_NAICS = "NAICS Code"
+
+# This is the actual AT-related field from your workbook
+COL_NAICS = "NAICS Level 2 Code Number"
 
 
 # ----------------------------
@@ -128,6 +130,18 @@ def load_excel_data(url: str) -> pd.DataFrame:
 # Utility functions
 # ----------------------------
 def clean_category(series: pd.Series) -> pd.Series:
+    return (
+        series.astype(str)
+        .str.strip()
+        .replace({
+            "": "Unknown",
+            "nan": "Unknown",
+            "None": "Unknown"
+        })
+    )
+
+
+def clean_naics(series: pd.Series) -> pd.Series:
     return (
         series.astype(str)
         .str.strip()
@@ -212,7 +226,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     fact_df = df.copy()
     fact_df[l2_col] = clean_category(fact_df[l2_col])
     fact_df[l3_col] = clean_category(fact_df[l3_col])
-    fact_df[naics_col] = clean_category(fact_df[naics_col])
+    fact_df[naics_col] = clean_naics(fact_df[naics_col])
 
     selected_df = fact_df[fact_df[l2_col] == selected_l2].copy()
 
