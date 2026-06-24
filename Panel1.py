@@ -440,7 +440,7 @@ try:
     with left_col:
         st.subheader("Percent Annual Energy by Industrial Process")
 
-            st.plotly_chart(
+        st.plotly_chart(
                 build_bar_chart(bar_df),
                 use_container_width=False,
                 theme=None,
