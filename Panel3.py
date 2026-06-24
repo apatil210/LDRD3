@@ -107,7 +107,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<h1>US Manufacturing Energy Classification: NAICS</h1>", unsafe_allow_html=True)
+st.markdown("<h1>US Manufacturing Energy 2022 Classification: NAICS</h1>", unsafe_allow_html=True)
 st.write("Select a NAICS Level 1 (3-digit code) sector to generate an energy fact sheet.")
 
 if missing:
