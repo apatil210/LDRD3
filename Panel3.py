@@ -15,10 +15,6 @@ EXPECTED = {
     "naics_l1": "NAICS Level 1",
     "industrial_process": "Industrial process",
     "percent_energy": "Percent Annual energy demand in 2022",
-    "annual_energy": "Annual energy demand in 2022",
-    "annual_electricity": "Annual electricity demand in 2022",
-    "annual_fuels": "Annual fuels demand in 2022",
-    "annual_steam": "Annual fuels or electricity for steam or steam from CHP demand in 2022",
 }
 
 
@@ -232,20 +228,33 @@ if missing:
     st.write("Available columns:", list(df.columns))
     st.stop()
 
-if len(df.columns) <= 10:
-    st.error("Column K is not available in the loaded sheet.")
+# Required positional columns:
+# K  -> temperature
+# AU -> total annual energy
+# AW -> annual electricity
+# AX -> annual fuels
+# AY -> annual steam
+required_min_columns = 51  # AY is the 51st Excel column -> zero-based index 50
+
+if len(df.columns) < required_min_columns:
+    st.error(
+        "The loaded sheet does not contain enough columns after cleaning. "
+        "This app requires at least Excel columns K, AU, AW, AX, and AY."
+    )
+    st.write("Detected columns:", len(df.columns))
+    st.write("Available columns:", list(df.columns))
     st.stop()
 
 naics_l1_col = cols["naics_l1"]
 naics_l2_col = cols["naics_l2"]
 industrial_process_col = cols["industrial_process"]
 percent_energy_col = cols["percent_energy"]
-annual_energy_col = cols["annual_energy"]
-annual_electricity_col = cols["annual_electricity"]
-annual_fuels_col = cols["annual_fuels"]
-annual_steam_col = cols["annual_steam"]
 
-temperature_col = df.columns[10]  # Excel column K
+temperature_col = df.columns[10]   # Excel column K
+total_energy_col = df.columns[46]  # Excel column AU
+electricity_col = df.columns[48]   # Excel column AW
+fuels_col = df.columns[49]         # Excel column AX
+steam_col = df.columns[50]         # Excel column AY
 
 naics_options = sorted(df[naics_l1_col].dropna().astype(str).drop_duplicates().tolist())
 selected_naics = st.selectbox(
@@ -259,10 +268,10 @@ df_filtered = df[df[naics_l1_col].astype(str) == str(selected_naics)].copy()
 coverage = num(df_filtered[percent_energy_col]).sum()
 coverage_text = f"{coverage:.2%}" if coverage > 0 else "N/A"
 
-total_energy = num(df_filtered[annual_energy_col]).sum()
-total_electricity = num(df_filtered[annual_electricity_col]).sum()
-total_fuels = num(df_filtered[annual_fuels_col]).sum()
-total_steam = num(df_filtered[annual_steam_col]).sum()
+total_energy = num(df_filtered[total_energy_col]).sum()
+total_electricity = num(df_filtered[electricity_col]).sum()
+total_fuels = num(df_filtered[fuels_col]).sum()
+total_steam = num(df_filtered[steam_col]).sum()
 
 breakdown_df = pd.DataFrame(
     {
@@ -272,13 +281,13 @@ breakdown_df = pd.DataFrame(
 )
 breakdown_df = breakdown_df[breakdown_df["Value"] > 0].copy()
 
-naics_donut_df = df_filtered[[naics_l2_col, annual_energy_col]].copy()
-naics_donut_df[annual_energy_col] = pd.to_numeric(naics_donut_df[annual_energy_col], errors="coerce")
+naics_donut_df = df_filtered[[naics_l2_col, total_energy_col]].copy()
+naics_donut_df[total_energy_col] = pd.to_numeric(naics_donut_df[total_energy_col], errors="coerce")
 naics_donut_df = (
-    naics_donut_df.dropna(subset=[naics_l2_col, annual_energy_col])
-    .groupby(naics_l2_col, as_index=False)[annual_energy_col]
+    naics_donut_df.dropna(subset=[naics_l2_col, total_energy_col])
+    .groupby(naics_l2_col, as_index=False)[total_energy_col]
     .sum()
-    .rename(columns={naics_l2_col: "NAICS Level 2", annual_energy_col: "Annual Energy"})
+    .rename(columns={naics_l2_col: "NAICS Level 2", total_energy_col: "Annual Energy"})
 )
 naics_donut_df = naics_donut_df[naics_donut_df["Annual Energy"] > 0].copy()
 naics_donut_df = naics_donut_df.sort_values("Annual Energy", ascending=False)
@@ -289,18 +298,18 @@ if naics_total > 0:
 else:
     naics_donut_df["Percent"] = 0.0
 
-process_df = df_filtered[[industrial_process_col, annual_energy_col]].copy()
-process_df[annual_energy_col] = pd.to_numeric(process_df[annual_energy_col], errors="coerce")
+process_df = df_filtered[[industrial_process_col, total_energy_col]].copy()
+process_df[total_energy_col] = pd.to_numeric(process_df[total_energy_col], errors="coerce")
 process_df = (
-    process_df.dropna(subset=[industrial_process_col, annual_energy_col])
-    .groupby(industrial_process_col, as_index=False)[annual_energy_col]
+    process_df.dropna(subset=[industrial_process_col, total_energy_col])
+    .groupby(industrial_process_col, as_index=False)[total_energy_col]
     .sum()
-    .rename(columns={industrial_process_col: "Industrial process", annual_energy_col: "Annual Energy"})
+    .rename(columns={industrial_process_col: "Industrial process", total_energy_col: "Annual Energy"})
 )
 process_df = process_df[process_df["Annual Energy"] > 0].copy()
 process_df = process_df.sort_values("Annual Energy", ascending=False)
 
-temp_df = df_filtered[[temperature_col, annual_energy_col]].copy()
+temp_df = df_filtered[[temperature_col, total_energy_col]].copy()
 temp_df.columns = ["Temperature", "Annual Energy"]
 temp_df["Temperature"] = pd.to_numeric(temp_df["Temperature"], errors="coerce")
 temp_df["Annual Energy"] = pd.to_numeric(temp_df["Annual Energy"], errors="coerce")
@@ -352,7 +361,6 @@ with left_col:
         '<div class="section-title">Total Annual Energy Breakdown: NAICS 6-digit Code</div>',
         unsafe_allow_html=True,
     )
-   
 
     if not naics_donut_df.empty:
         fig_naics = px.pie(
