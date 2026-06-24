@@ -17,7 +17,7 @@ st.set_page_config(
 
 pio.templates.default = "plotly"
 
-DATA_URL = "https://raw.githubusercontent.com/apatil210/LDRD2/main/Modified%20Data.xlsx"
+DATA_URL = "https://raw.githubusercontent.com/apatil210/LDRD3/main/DatasetJune24.xlsx"
 SHEET_NAME = "Process-level data"
 
 TEXT_COLOR = "#14212B"
