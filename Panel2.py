@@ -332,7 +332,11 @@ def build_bar_chart(df: pd.DataFrame):
     )
 
     fig.update_xaxes(showgrid=True, automargin=True)
-    fig.update_yaxes(categoryorder="total ascending", automargin=True, ticklabelstandoff=40)
+    fig.update_yaxes(
+        categoryorder="total ascending",
+        automargin=True,
+        ticklabelstandoff=40
+    )
 
     return fig
 
@@ -408,9 +412,24 @@ try:
     df = load_excel_data(DATA_URL)
     bar_df = prepare_bar_data(df)
 
-    left_col, right_col = st.columns([1.1, 1.6], gap="large")
+    # Bar chart on the left, controls/details on the right
+    left_col, right_col = st.columns([1.6, 1.1], gap="large")
 
     with left_col:
+        st.subheader("Percent Annual Energy by Unit Operation Classification")
+
+        with st.container(height=1000):
+            st.plotly_chart(
+                build_bar_chart(bar_df),
+                use_container_width=True,
+                theme=None,
+                config={
+                    "displayModeBar": False,
+                    "scrollZoom": False
+                }
+            )
+
+    with right_col:
         selected_l2 = st.selectbox(
             "Select a unit operation (Level 2 classification) to generate a fact sheet",
             bar_df["Unit operation (Level 2 classification)"].tolist()
@@ -420,14 +439,14 @@ try:
 
         if fact_sheet is not None:
             metric_col1, metric_col2 = st.columns(2)
-           # metric_col1.metric(
-           #     "Annual Production (tonne/yr)",
-          #      f"{fact_sheet['Annual Production']:.2f}"
-          #  )
-           # metric_col2.metric(
-          #      "Annual Energy (PJ/yr)",
-          #      f"{fact_sheet['Annual Energy']:.2f}"
-          #  )
+            # metric_col1.metric(
+            #     "Annual Production (tonne/yr)",
+            #     f"{fact_sheet['Annual Production']:.2f}"
+            # )
+            # metric_col2.metric(
+            #     "Annual Energy (PJ/yr)",
+            #     f"{fact_sheet['Annual Energy']:.2f}"
+            # )
 
             st.subheader("Total Annual Energy Breakdown")
             donut_fig = build_annual_energy_donut(fact_sheet)
@@ -446,20 +465,6 @@ try:
                 fact_sheet["Details"],
                 use_container_width=True,
                 hide_index=True
-            )
-
-    with right_col:
-        st.subheader("Percent Annual Energy by Unit Operation Classification")
-
-        with st.container(height=1000):
-            st.plotly_chart(
-                build_bar_chart(bar_df),
-                use_container_width=False,
-                theme=None,
-                config={
-                    "displayModeBar": False,
-                    "scrollZoom": False
-                }
             )
 
 except Exception as e:
