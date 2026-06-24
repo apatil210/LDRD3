@@ -345,7 +345,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-left_col, right_col = st.columns([1.45, 1.0], gap="large")
+left_col, right_col = st.columns([1.2, 1.0], gap="large")
 
 with left_col:
     st.markdown(
@@ -398,6 +398,43 @@ with left_col:
         st.plotly_chart(fig_bar, use_container_width=True)
     else:
         st.info("No NAICS Level 2 annual energy data is available for this selection.")
+
+    st.markdown(
+        '<div class="section-title" style="font-size: 1.05rem; margin-top: 1.4rem;">Total Annual Energy Breakdown: Industrial Process</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not process_df.empty:
+        top_process = process_df.head(8).copy()
+        fig_process = px.bar(
+            top_process.sort_values("Annual Energy", ascending=True),
+            x="Annual Energy",
+            y="Industrial process",
+            orientation="h",
+            text="Annual Energy",
+        )
+        fig_process.update_traces(
+            marker_color="#e85d75",
+            texttemplate="%{text:.1f}",
+            textposition="outside",
+            cliponaxis=False,
+            hovertemplate="<b>%{y}</b><br>%{x:.2f} PJ<extra></extra>",
+        )
+        fig_process.update_layout(
+            height=360,
+            paper_bgcolor="#ffffff",
+            plot_bgcolor="#ffffff",
+            margin=dict(t=0, b=10, l=140, r=40),
+            xaxis_title="",
+            yaxis_title="",
+            font=dict(color="#2f3042", family="Inter, sans-serif", size=13),
+            showlegend=False,
+        )
+        fig_process.update_xaxes(showgrid=False, showticklabels=False, visible=False)
+        fig_process.update_yaxes(showgrid=False, ticks="")
+        st.plotly_chart(fig_process, use_container_width=True)
+    else:
+        st.info("No industrial process annual energy data is available for this selection.")
 
 with right_col:
     st.markdown(
@@ -491,40 +528,3 @@ with right_col:
         st.plotly_chart(fig_temp, use_container_width=True)
     else:
         st.info("No annual energy by temperature data is available for this selection.")
-
-    st.markdown(
-        '<div class="section-title" style="font-size: 1.05rem; margin-top: 1.2rem;">Total Annual Energy Breakdown: Industrial Process</div>',
-        unsafe_allow_html=True,
-    )
-
-    if not process_df.empty:
-        top_process = process_df.head(8).copy()
-        fig_process = px.bar(
-            top_process.sort_values("Annual Energy", ascending=True),
-            x="Annual Energy",
-            y="Industrial process",
-            orientation="h",
-            text="Annual Energy",
-        )
-        fig_process.update_traces(
-            marker_color="#e85d75",
-            texttemplate="%{text:.1f}",
-            textposition="outside",
-            cliponaxis=False,
-            hovertemplate="<b>%{y}</b><br>%{x:.2f} PJ<extra></extra>",
-        )
-        fig_process.update_layout(
-            height=320,
-            paper_bgcolor="#ffffff",
-            plot_bgcolor="#ffffff",
-            margin=dict(t=0, b=10, l=120, r=40),
-            xaxis_title="",
-            yaxis_title="",
-            font=dict(color="#2f3042", family="Inter, sans-serif", size=13),
-            showlegend=False,
-        )
-        fig_process.update_xaxes(showgrid=False, showticklabels=False, visible=False)
-        fig_process.update_yaxes(showgrid=False, ticks="")
-        st.plotly_chart(fig_process, use_container_width=True)
-    else:
-        st.info("No industrial process annual energy data is available for this selection.")
