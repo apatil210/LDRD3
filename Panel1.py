@@ -28,7 +28,7 @@ SEC_COLOR_MAP = {
 
 TEMP_COLOR_MAP = {
     "<100 C": "#54A24B",
-    "100-200 C": "#F2CF5B",
+    "100-200 C": "#EECA3B",
     "200-400 C": "#F58518",
     ">400 C": "#B279A2",
 }
@@ -293,11 +293,13 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     unit_ops_col = "Unit operation (Level 3 classification; with details)"
     production_col = "Annual production in 2022\n(based on FU)"
     annual_energy_col = "Annual energy demand in 2022"
+
+    sec_total_col = "SEC"
     elec_col = "SEC \nelectricity"
     fuel_col = "SEC \nfuels"
     steam_col = "SEC \nfuels or electricity for steam or steam from CHP"
 
-    efficiency_col = "Efficiency"
+    temp_web_col = "Process Temperature for Webpage"
     process_temp_col = "Process temperature"
     inlet_temp_col = "Inlet temperature"
     outlet_temp_col = "Outlet temperature"
@@ -305,6 +307,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     inlet_pressure_col = "Inlet pressure"
     outlet_pressure_col = "Outlet pressure"
     residence_time_col = "Residence time"
+    efficiency_col = "Efficiency"
 
     naics_idx = 40
 
@@ -320,14 +323,28 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     numeric_cols = [
         production_col,
         annual_energy_col,
+        sec_total_col,
         elec_col,
         fuel_col,
         steam_col,
+        temp_web_col,
         process_temp_col
     ]
 
     for col in numeric_cols:
-        selected_df[col] = pd.to_numeric(selected_df[col], errors="coerce")
+        if col in selected_df.columns:
+            selected_df[col] = pd.to_numeric(selected_df[col], errors="coerce")
+
+    selected_df["Temp for Donut"] = selected_df[temp_web_col]
+    if process_temp_col in selected_df.columns:
+        selected_df["Temp for Donut"] = selected_df["Temp for Donut"].fillna(selected_df[process_temp_col])
+
+    selected_df["Row SEC Total"] = selected_df[sec_total_col]
+    selected_df["Row SEC Total"] = selected_df["Row SEC Total"].fillna(
+        selected_df[elec_col].fillna(0)
+        + selected_df[fuel_col].fillna(0)
+        + selected_df[steam_col].fillna(0)
+    )
 
     naics_series = (
         selected_df.iloc[:, naics_idx]
@@ -352,20 +369,12 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     sec_fuels = selected_df[fuel_col].fillna(0).sum()
     sec_steam = selected_df[steam_col].fillna(0).sum()
 
-    temp_sec_df = selected_df[
-        [process_temp_col, elec_col, fuel_col, steam_col]
-    ].copy()
-
-    temp_sec_df["Row SEC Total"] = (
-        temp_sec_df[elec_col].fillna(0)
-        + temp_sec_df[fuel_col].fillna(0)
-        + temp_sec_df[steam_col].fillna(0)
-    )
-
-    temp_sec_df = temp_sec_df.dropna(subset=[process_temp_col]).copy()
+    temp_sec_df = selected_df[["Temp for Donut", "Row SEC Total"]].copy()
+    temp_sec_df = temp_sec_df.dropna(subset=["Temp for Donut"]).copy()
+    temp_sec_df = temp_sec_df[temp_sec_df["Row SEC Total"].fillna(0) > 0].copy()
 
     temp_sec_df["Temperature Range"] = pd.cut(
-        temp_sec_df[process_temp_col],
+        temp_sec_df["Temp for Donut"],
         bins=[float("-inf"), 100, 200, 400, float("inf")],
         labels=["<100 C", "100-200 C", "200-400 C", ">400 C"],
         right=False
@@ -391,13 +400,15 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     detail_df = selected_df[
         [
             unit_ops_col,
+            sec_total_col,
             elec_col,
             fuel_col,
             steam_col,
-            efficiency_col,
+            temp_web_col,
             process_temp_col,
             inlet_temp_col,
             outlet_temp_col,
+            efficiency_col,
             process_pressure_col,
             inlet_pressure_col,
             outlet_pressure_col,
@@ -405,13 +416,15 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
         ]
     ].rename(columns={
         unit_ops_col: "Unit Operations",
+        sec_total_col: "SEC Total (GJ/t)",
         elec_col: "SEC Electricity (GJ/t)",
         fuel_col: "SEC Fuels (GJ/t)",
         steam_col: "SEC Steam (GJ/t)",
-        efficiency_col: "Efficiency (%)",
+        temp_web_col: "Process Temp for Webpage (°C)",
         process_temp_col: "Process temperature (°C)",
         inlet_temp_col: "Inlet temperature (°C)",
         outlet_temp_col: "Outlet temperature (°C)",
+        efficiency_col: "Efficiency (%)",
         process_pressure_col: "Process pressure (bar)",
         inlet_pressure_col: "Inlet pressure (bar)",
         outlet_pressure_col: "Outlet pressure (bar)",
