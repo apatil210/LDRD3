@@ -527,7 +527,7 @@ try:
 
     with left_col:
         st.subheader("Percent Annual Energy by Unit Operation Classification")
-
+        
         st.plotly_chart(
             build_bar_chart(bar_df),
             use_container_width=False,
@@ -550,6 +550,7 @@ try:
             metric_col1, metric_col2 = st.columns(2)
 
             st.subheader("Total Annual Energy Breakdown")
+            st.caption("Categorization by Energy Source")
             donut_fig = build_annual_energy_donut(fact_sheet)
 
             if donut_fig is not None:
