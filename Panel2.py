@@ -493,7 +493,7 @@ def build_temperature_donut(fact_sheet: dict):
         font=dict(family="Arial, sans-serif", color=TEXT_COLOR, size=13),
         annotations=[
             dict(
-                text=f"<b>Total from AU</b><br>{total_energy:.2f}",
+                text=f"<b>Total </b><br>{total_energy:.2f}",
                 x=0.5, y=0.5, showarrow=False,
                 font=dict(size=16, color=TEXT_COLOR)
             )
