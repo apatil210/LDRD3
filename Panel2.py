@@ -349,7 +349,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         sec_steam_col: "SEC Steam (GJ/t)",
         efficiency_col: "Efficiency (%)",
         process_temp_col: "Process temperature (°C)",
-       # process_temp_web_col: "Process Temperature for Webpage (°C)",
+        process_temp_web_col: "Process Temperature for Webpage (°C)",
         annual_energy_col: "Annual Energy from AU",
         inlet_temp_col: "Inlet temperature (°C)",
         outlet_temp_col: "Outlet temperature (°C)",
@@ -562,7 +562,7 @@ try:
                 )
 
             st.dataframe(
-                fact_sheet["Details"],
+                fact_sheet["Details".drop(columns=["Process Temperature for Webpage (°C)"]),
                 use_container_width=True,
                 hide_index=True
             )
