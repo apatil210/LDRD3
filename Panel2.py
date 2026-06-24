@@ -418,8 +418,8 @@ try:
     with left_col:
         st.subheader("Percent Annual Energy by Unit Operation Classification")
 
-        with st.container(height=1000):
-            st.plotly_chart(
+        # with st.container(height=1000):
+        st.plotly_chart(
                 build_bar_chart(bar_df),
                 use_container_width=True,
                 theme=None,
