@@ -2,7 +2,6 @@ from io import BytesIO
 
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import plotly.io as pio
 import requests
 import streamlit as st
@@ -179,81 +178,46 @@ def build_bar_chart(df: pd.DataFrame):
     return fig
 
 
-def build_nested_sec_donut(fact_sheet: dict):
-    inner_df = pd.DataFrame({
-        "Label": ["SEC Electricity", "SEC Fuels", "SEC Steam"],
+def build_sec_donut(fact_sheet: dict):
+    donut_df = pd.DataFrame({
+        "SEC Type": ["SEC Electricity", "SEC Fuels", "SEC Steam"],
         "Value": [
             fact_sheet["SEC Electricity"],
             fact_sheet["SEC Fuels"],
             fact_sheet["SEC Steam"]
         ]
     })
-    inner_df = inner_df[inner_df["Value"] > 0].copy()
 
-    outer_df = fact_sheet["Temperature SEC Breakdown"].copy()
-    outer_df = outer_df[outer_df["Value"] > 0].copy()
-    outer_df = outer_df.rename(columns={"Temperature Range": "Label"})
+    donut_df = donut_df[donut_df["Value"] > 0].copy()
 
-    total_sec = inner_df["Value"].sum()
-
-    fig = go.Figure()
-
-    fig.add_trace(
-        go.Pie(
-            labels=outer_df["Label"],
-            values=outer_df["Value"],
-            hole=0.62,
-            sort=False,
-            direction="clockwise",
-            textposition="outside",
-            texttemplate="%{label} %{percent}",
-            hovertemplate=(
-                "<b>%{label}</b><br>"
-                "Value: %{value:.3f} GJ/t<br>"
-                "Share: %{percent}<extra></extra>"
-            ),
-            marker=dict(
-                colors=[TEMP_COLOR_MAP.get(label, "#CCCCCC") for label in outer_df["Label"]],
-                line=dict(color="#FFFFFF", width=2)
-            ),
-            domain=dict(x=[0.10, 0.90], y=[0.10, 0.90]),
-            showlegend=False,
-            automargin=True
-        )
+    fig = px.pie(
+        donut_df,
+        names="SEC Type",
+        values="Value",
+        hole=0.62,
+        color="SEC Type",
+        color_discrete_map=SEC_COLOR_MAP
     )
 
-    fig.add_trace(
-        go.Pie(
-            labels=inner_df["Label"],
-            values=inner_df["Value"],
-            hole=0.72,
-            sort=False,
-            direction="clockwise",
-            textposition="inside",
-            texttemplate="%{label}<br>%{percent}",
-            insidetextorientation="horizontal",
-            hovertemplate=(
-                "<b>%{label}</b><br>"
-                "Value: %{value:.3f} GJ/t<br>"
-                "Share: %{percent}<extra></extra>"
-            ),
-            marker=dict(
-                colors=[SEC_COLOR_MAP.get(label, "#CCCCCC") for label in inner_df["Label"]],
-                line=dict(color="#FFFFFF", width=2)
-            ),
-            domain=dict(x=[0.26, 0.74], y=[0.26, 0.74]),
-            showlegend=False,
-            automargin=True
-        )
+    total_sec = donut_df["Value"].sum()
+
+    fig.update_traces(
+        textposition="outside",
+        texttemplate="%{label}<br>%{percent}",
+        hovertemplate=(
+            "<b>%{label}</b><br>"
+            "Value: %{value:.3f}<br>"
+            "Share: %{percent}<extra></extra>"
+        ),
+        marker=dict(line=dict(color="#FFFFFF", width=2))
     )
 
     fig.update_layout(
-        height=620,
-        margin=dict(t=30, l=80, r=80, b=30),
+        height=360,
+        margin=dict(t=20, l=20, r=20, b=20),
         paper_bgcolor=PAPER_BG,
         plot_bgcolor=PLOT_BG,
-        uniformtext_minsize=11,
-        uniformtext_mode="hide",
+        showlegend=False,
         font=dict(
             family="Arial, sans-serif",
             color=TEXT_COLOR,
@@ -265,8 +229,57 @@ def build_nested_sec_donut(fact_sheet: dict):
                 x=0.5,
                 y=0.5,
                 showarrow=False,
-                xanchor="center",
-                yanchor="middle",
+                font=dict(size=16, color=TEXT_COLOR)
+            )
+        ]
+    )
+
+    return fig
+
+
+def build_temp_sec_donut(fact_sheet: dict):
+    donut_df = fact_sheet["Temperature SEC Breakdown"].copy()
+    donut_df = donut_df[donut_df["Value"] > 0].copy()
+
+    fig = px.pie(
+        donut_df,
+        names="Temperature Range",
+        values="Value",
+        hole=0.62,
+        color="Temperature Range",
+        color_discrete_map=TEMP_COLOR_MAP
+    )
+
+    total_sec = donut_df["Value"].sum()
+
+    fig.update_traces(
+        textposition="outside",
+        texttemplate="%{label}<br>%{percent}",
+        hovertemplate=(
+            "<b>%{label}</b><br>"
+            "Value: %{value:.3f} GJ/t<br>"
+            "Share: %{percent}<extra></extra>"
+        ),
+        marker=dict(line=dict(color="#FFFFFF", width=2))
+    )
+
+    fig.update_layout(
+        height=360,
+        margin=dict(t=20, l=20, r=20, b=20),
+        paper_bgcolor=PAPER_BG,
+        plot_bgcolor=PLOT_BG,
+        showlegend=False,
+        font=dict(
+            family="Arial, sans-serif",
+            color=TEXT_COLOR,
+            size=13
+        ),
+        annotations=[
+            dict(
+                text=f"<b>Total SEC (GJ/t)</b><br>{total_sec:.2f}",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
                 font=dict(size=16, color=TEXT_COLOR)
             )
         ]
@@ -468,14 +481,26 @@ try:
             c3.metric("NAICS Code", f"{fact_sheet['NAICS Code']}")
 
             st.subheader("Specific Energy Consumption (SEC)")
-            st.caption("Inner ring: SEC source | Outer ring: process temperature range")
 
-            st.plotly_chart(
-                build_nested_sec_donut(fact_sheet),
-                use_container_width=True,
-                theme=None,
-                config={"displayModeBar": False}
-            )
+            donut_col1, donut_col2 = st.columns(2)
+
+            with donut_col1:
+                st.caption("By SEC source")
+                st.plotly_chart(
+                    build_sec_donut(fact_sheet),
+                    use_container_width=True,
+                    theme=None,
+                    config={"displayModeBar": False}
+                )
+
+            with donut_col2:
+                st.caption("By process temperature range")
+                st.plotly_chart(
+                    build_temp_sec_donut(fact_sheet),
+                    use_container_width=True,
+                    theme=None,
+                    config={"displayModeBar": False}
+                )
 
             st.dataframe(
                 fact_sheet["Details"],
