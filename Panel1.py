@@ -202,7 +202,7 @@ def build_nested_sec_donut(fact_sheet: dict):
         go.Pie(
             labels=outer_df["Label"],
             values=outer_df["Value"],
-            hole=0.55,
+            hole=0.62,
             sort=False,
             direction="clockwise",
             textposition="outside",
@@ -216,8 +216,9 @@ def build_nested_sec_donut(fact_sheet: dict):
                 colors=[TEMP_COLOR_MAP.get(label, "#CCCCCC") for label in outer_df["Label"]],
                 line=dict(color="#FFFFFF", width=2)
             ),
-            domain=dict(x=[0.08, 0.92], y=[0.08, 0.92]),
-            showlegend=False
+            domain=dict(x=[0.10, 0.90], y=[0.10, 0.90]),
+            showlegend=False,
+            automargin=True
         )
     )
 
@@ -225,11 +226,12 @@ def build_nested_sec_donut(fact_sheet: dict):
         go.Pie(
             labels=inner_df["Label"],
             values=inner_df["Value"],
-            hole=0.78,
+            hole=0.72,
             sort=False,
             direction="clockwise",
             textposition="inside",
             texttemplate="%{label}<br>%{percent}",
+            insidetextorientation="horizontal",
             hovertemplate=(
                 "<b>%{label}</b><br>"
                 "Value: %{value:.3f} GJ/t<br>"
@@ -239,14 +241,15 @@ def build_nested_sec_donut(fact_sheet: dict):
                 colors=[SEC_COLOR_MAP.get(label, "#CCCCCC") for label in inner_df["Label"]],
                 line=dict(color="#FFFFFF", width=2)
             ),
-            domain=dict(x=[0.24, 0.76], y=[0.24, 0.76]),
-            showlegend=False
+            domain=dict(x=[0.26, 0.74], y=[0.26, 0.74]),
+            showlegend=False,
+            automargin=True
         )
     )
 
     fig.update_layout(
-        height=520,
-        margin=dict(t=20, l=30, r=30, b=20),
+        height=620,
+        margin=dict(t=30, l=80, r=80, b=30),
         paper_bgcolor=PAPER_BG,
         plot_bgcolor=PLOT_BG,
         uniformtext_minsize=11,
