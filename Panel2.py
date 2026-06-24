@@ -34,7 +34,7 @@ ENERGY_COLOR_MAP = {
 TEMP_COLOR_MAP = {
     "<100 °C": "#72B7B2",
     "100-200 °C": "#54A24B",
-    "200-400 °C": "#EECA3B",
+    "200-400 °C": "#ECA82C",
     ">400 °C": "#E45756",
 }
 
@@ -257,6 +257,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         sec_elec_col,
         sec_fuels_col,
         sec_steam_col,
+        process_temp_col,
     ]
 
     for col in numeric_cols:
@@ -275,6 +276,25 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     annual_electricity = selected_df[annual_elec_col].fillna(0).sum()
     annual_fuels = selected_df[annual_fuels_col].fillna(0).sum()
     annual_steam = selected_df[annual_steam_col].fillna(0).sum()
+
+    temp_energy_df = selected_df[[process_temp_col, annual_energy_col]].copy()
+    temp_energy_df = temp_energy_df.dropna(subset=[process_temp_col, annual_energy_col])
+
+    temp_energy_df["Temperature Level"] = pd.cut(
+        temp_energy_df[process_temp_col],
+        bins=[-float("inf"), 100, 200, 400, float("inf")],
+        labels=["<100 °C", "100-200 °C", "200-400 °C", ">400 °C"],
+        right=False
+    )
+
+    temp_breakdown_df = (
+        temp_energy_df.groupby("Temperature Level", observed=False)[annual_energy_col]
+        .sum()
+        .reset_index()
+        .rename(columns={annual_energy_col: "Value"})
+    )
+
+    temp_breakdown_df = temp_breakdown_df[temp_breakdown_df["Value"] > 0].copy()
 
     detail_df = selected_df[
         [
@@ -314,6 +334,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         "Annual Electricity": annual_electricity,
         "Annual Fuels": annual_fuels,
         "Annual Steam": annual_steam,
+        "Temperature Breakdown": temp_breakdown_df,
         "Rows": len(selected_df),
         "Details": detail_df,
     }
@@ -430,42 +451,8 @@ def build_annual_energy_donut(fact_sheet: dict):
     return fig
 
 
-def build_temperature_energy_donut(df: pd.DataFrame, selected_l2: str):
-    l2_col = find_matching_column(df, COL_L2)
-    annual_energy_col = find_matching_column(df, COL_ANNUAL_ENERGY)
-    process_temp_col = find_matching_column(df, COL_PROCESS_TEMP)
-
-    temp_df = df[[l2_col, annual_energy_col, process_temp_col]].copy()
-    temp_df[l2_col] = clean_category(temp_df[l2_col])
-
-    temp_df = temp_df[temp_df[l2_col] == selected_l2].copy()
-
-    if temp_df.empty:
-        return None
-
-    temp_df[annual_energy_col] = to_numeric_safe(temp_df[annual_energy_col])
-    temp_df[process_temp_col] = to_numeric_safe(temp_df[process_temp_col])
-
-    temp_df = temp_df.dropna(subset=[annual_energy_col, process_temp_col]).copy()
-    temp_df = temp_df[temp_df[annual_energy_col] > 0].copy()
-
-    if temp_df.empty:
-        return None
-
-    temp_df["Temperature Level"] = pd.cut(
-        temp_df[process_temp_col],
-        bins=[-float("inf"), 100, 200, 400, float("inf")],
-        labels=["<100 °C", "100-200 °C", "200-400 °C", ">400 °C"],
-        right=False
-    )
-
-    donut_df = (
-        temp_df.groupby("Temperature Level", as_index=False)[annual_energy_col]
-        .sum()
-        .rename(columns={annual_energy_col: "Value"})
-    )
-
-    donut_df = donut_df[donut_df["Value"] > 0].copy()
+def build_temperature_donut(fact_sheet: dict):
+    donut_df = fact_sheet["Temperature Breakdown"].copy()
 
     if donut_df.empty:
         return None
@@ -476,10 +463,7 @@ def build_temperature_energy_donut(df: pd.DataFrame, selected_l2: str):
         values="Value",
         hole=0.62,
         color="Temperature Level",
-        color_discrete_map=TEMP_COLOR_MAP,
-        category_orders={
-            "Temperature Level": ["<100 °C", "100-200 °C", "200-400 °C", ">400 °C"]
-        }
+        color_discrete_map=TEMP_COLOR_MAP
     )
 
     total_energy = donut_df["Value"].sum()
@@ -569,7 +553,7 @@ try:
                 st.info("No positive annual energy values available for the selected category.")
 
             st.subheader("Annual Energy by Temperature Level")
-            temp_donut_fig = build_temperature_energy_donut(df, selected_l2)
+            temp_donut_fig = build_temperature_donut(fact_sheet)
 
             if temp_donut_fig is not None:
                 st.plotly_chart(
