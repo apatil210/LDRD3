@@ -312,7 +312,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     residence_time_col = "Residence time"
     efficiency_col = "Efficiency"
 
-    naics_idx = 40
+    naics_idx = 45
 
     fact_df = df.copy()
     fact_df[process_col] = clean_category(fact_df[process_col])
