@@ -6,6 +6,7 @@ import plotly.express as px
 import plotly.io as pio
 import requests
 import streamlit as st
+from openpyxl import load_workbook
 
 # ----------------------------
 # App configuration
@@ -63,13 +64,18 @@ COL_OUTLET_PRESSURE = "Outlet pressure"
 COL_RESIDENCE_TIME = "Residence time"
 COL_NAICS = "NAICS Level 2 Code Number"
 
-DESCRIPTION_COLUMN_INDEX = 4  # Excel Column E (0-based index after parsing)
+# fixed excel columns (1-based)
+EXCEL_COL_K = 11
+EXCEL_COL_E = 5
+EXCEL_COL_AW = 49
+EXCEL_COL_AX = 50
+EXCEL_COL_AY = 51
 
 # ----------------------------
 # Header utilities
 # ----------------------------
 def normalize_header(value) -> str:
-    text = str(value)
+    text = str(value if value is not None else "")
     text = text.replace("\n", " ").replace("\r", " ")
     text = re.sub(r"\s+", " ", text).strip()
     return text
@@ -102,11 +108,7 @@ def clean_category(series: pd.Series) -> pd.Series:
         series.astype(str)
         .str.replace("\xa0", " ", regex=False)
         .str.strip()
-        .replace({
-            "": "Unknown",
-            "nan": "Unknown",
-            "None": "Unknown"
-        })
+        .replace({"": "Unknown", "nan": "Unknown", "None": "Unknown"})
     )
 
 
@@ -115,11 +117,7 @@ def clean_naics(series: pd.Series) -> pd.Series:
         series.astype(str)
         .str.replace("\xa0", " ", regex=False)
         .str.strip()
-        .replace({
-            "": "Unknown",
-            "nan": "Unknown",
-            "None": "Unknown"
-        })
+        .replace({"": "Unknown", "nan": "Unknown", "None": "Unknown"})
     )
 
 
@@ -128,11 +126,7 @@ def clean_text(series: pd.Series) -> pd.Series:
         series.astype(str)
         .str.replace("\xa0", " ", regex=False)
         .str.strip()
-        .replace({
-            "": "Unknown",
-            "nan": "Unknown",
-            "None": "Unknown"
-        })
+        .replace({"": "Unknown", "nan": "Unknown", "None": "Unknown"})
     )
 
 
@@ -158,24 +152,38 @@ def load_excel_data(url: str) -> pd.DataFrame:
     if "text/html" in content_type.lower():
         raise ValueError("The URL returned HTML instead of an Excel file.")
 
-    raw_df = pd.read_excel(
-        BytesIO(response.content),
-        sheet_name=SHEET_NAME,
-        header=None,
-        engine="openpyxl"
-    )
+    wb = load_workbook(filename=BytesIO(response.content), data_only=True)
+    ws = wb[SHEET_NAME]
 
-    # Workbook structure:
-    # row 0 = grouped section labels
-    # row 1 = actual field names
-    # row 2 = units
-    # data starts after that
-    header_row_idx = 1
-    data_start_idx = header_row_idx + 2
+    header_row_excel = 2   # row with actual field names
+    data_start_excel = 4   # data starts after grouped labels, headers, units
 
-    df = raw_df.iloc[data_start_idx:].copy()
-    df.columns = raw_df.iloc[header_row_idx].map(lambda x: str(x))
-    df = df.reset_index(drop=True)
+    max_col = ws.max_column
+    max_row = ws.max_row
+
+    headers = []
+    for c in range(1, max_col + 1):
+        headers.append(ws.cell(row=header_row_excel, column=c).value)
+
+    rows = []
+    for r in range(data_start_excel, max_row + 1):
+        row_values = [ws.cell(row=r, column=c).value for c in range(1, max_col + 1)]
+        if all(v is None for v in row_values):
+            continue
+        rows.append(row_values)
+
+    df = pd.DataFrame(rows, columns=[str(h) if h is not None else f"Unnamed_{i+1}" for i, h in enumerate(headers)])
+
+    # Force exact Excel column K into a named dataframe column for the webpage logic
+    df[COL_PROCESS_TEMP_WEB] = pd.Series([row[EXCEL_COL_K - 1] for row in rows])
+
+    # Keep exact Excel E text available
+    df["_Description_Excel_E"] = pd.Series([row[EXCEL_COL_E - 1] for row in rows])
+
+    # Keep exact Excel AW/AX/AY values available
+    df["_Annual_Electricity_AW"] = pd.Series([row[EXCEL_COL_AW - 1] for row in rows])
+    df["_Annual_Fuels_AX"] = pd.Series([row[EXCEL_COL_AX - 1] for row in rows])
+    df["_Annual_Steam_AY"] = pd.Series([row[EXCEL_COL_AY - 1] for row in rows])
 
     return df
 
@@ -221,23 +229,12 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     annual_prod_col = find_matching_column(df, COL_ANNUAL_PRODUCTION)
     annual_energy_col = find_matching_column(df, COL_ANNUAL_ENERGY)
 
-    # Keep your existing AW/AX/AY positional assumption
-    if len(df.columns) <= 50:
-        raise KeyError(
-            "Expected Excel columns AW, AX, and AY, but the sheet has fewer than 51 columns after parsing."
-        )
-
-    annual_elec_col = df.columns[48]   # AW
-    annual_fuels_col = df.columns[49]  # AX
-    annual_steam_col = df.columns[50]  # AY
-
     sec_elec_col = find_matching_column(df, COL_SEC_ELECTRICITY)
     sec_fuels_col = find_matching_column(df, COL_SEC_FUELS)
     sec_steam_col = find_matching_column(df, COL_SEC_STEAM)
 
     efficiency_col = find_matching_column(df, COL_EFFICIENCY)
     process_temp_col = find_matching_column(df, COL_PROCESS_TEMP)
-    process_temp_web_col = find_matching_column(df, COL_PROCESS_TEMP_WEB)
     inlet_temp_col = find_matching_column(df, COL_INLET_TEMP)
     outlet_temp_col = find_matching_column(df, COL_OUTLET_TEMP)
     process_pressure_col = find_matching_column(df, COL_PROCESS_PRESSURE)
@@ -245,6 +242,12 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     outlet_pressure_col = find_matching_column(df, COL_OUTLET_PRESSURE)
     residence_time_col = find_matching_column(df, COL_RESIDENCE_TIME)
     naics_col = find_matching_column(df, COL_NAICS)
+
+    annual_elec_col = "_Annual_Electricity_AW"
+    annual_fuels_col = "_Annual_Fuels_AX"
+    annual_steam_col = "_Annual_Steam_AY"
+    description_col = "_Description_Excel_E"
+    process_temp_web_col = COL_PROCESS_TEMP_WEB
 
     fact_df = df.copy()
     fact_df[l2_col] = clean_category(fact_df[l2_col])
@@ -273,35 +276,26 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     for col in numeric_cols:
         selected_df[col] = to_numeric_safe(selected_df[col])
 
-    production_values = (
+    annual_production_values = (
         selected_df[annual_prod_col]
         .dropna()
         .loc[lambda s: s != 0]
         .unique()
     )
+    annual_production = annual_production_values[0] if len(annual_production_values) > 0 else 0
 
-    annual_production = production_values[0] if len(production_values) > 0 else 0
     annual_energy = selected_df[annual_energy_col].fillna(0).sum()
     annual_electricity = selected_df[annual_elec_col].fillna(0).sum()
     annual_fuels = selected_df[annual_fuels_col].fillna(0).sum()
     annual_steam = selected_df[annual_steam_col].fillna(0).sum()
 
-    if len(selected_df.columns) <= DESCRIPTION_COLUMN_INDEX:
-        raise KeyError(
-            f"Expected description source at Excel Column E (index {DESCRIPTION_COLUMN_INDEX}), "
-            f"but the parsed sheet has only {len(selected_df.columns)} columns."
-        )
-
-    description_col = selected_df.columns[DESCRIPTION_COLUMN_INDEX]
     selected_df[description_col] = clean_text(selected_df[description_col])
 
-    # Temperature donut uses the exact named column requested
     temp_energy_df = pd.DataFrame({
         "Temperature Raw": selected_df[process_temp_web_col],
         "Annual Energy": selected_df[annual_energy_col],
-    }).copy()
+    }).dropna(subset=["Temperature Raw", "Annual Energy"])
 
-    temp_energy_df = temp_energy_df.dropna(subset=["Temperature Raw", "Annual Energy"])
     temp_energy_df = temp_energy_df[temp_energy_df["Annual Energy"] > 0].copy()
 
     if not temp_energy_df.empty:
@@ -340,6 +334,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
             inlet_pressure_col,
             outlet_pressure_col,
             residence_time_col,
+            annual_energy_col,
         ]
     ].rename(columns={
         l3_col: "List of Industry Application",
@@ -357,6 +352,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         inlet_pressure_col: "Inlet pressure (bar)",
         outlet_pressure_col: "Outlet pressure (bar)",
         residence_time_col: "Residence time (sec)",
+        annual_energy_col: "Annual energy demand in 2022",
     })
 
     debug_temp_df = selected_df[[l2_col, l3_col, process_temp_web_col, annual_energy_col]].copy()
@@ -384,10 +380,8 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
 # Chart builders
 # ----------------------------
 def build_bar_chart(df: pd.DataFrame):
-    chart_df = df.copy()
-
     fig = px.bar(
-        chart_df,
+        df,
         x="Display Percent",
         y="Unit operation (Level 2 classification)",
         orientation="h",
@@ -403,24 +397,18 @@ def build_bar_chart(df: pd.DataFrame):
             "<b>%{y}</b><br>"
             "Summed percent annual energy: %{x:.4f}%<extra></extra>"
         ),
-        marker=dict(
-            line=dict(color="#FCFCFA", width=1.2)
-        )
+        marker=dict(line=dict(color="#FCFCFA", width=1.2))
     )
 
     fig.update_layout(
         width=1500,
-        height=max(700, 34 * len(chart_df)),
+        height=max(700, 34 * len(df)),
         paper_bgcolor=PAPER_BG,
         plot_bgcolor=PLOT_BG,
         margin=dict(t=60, l=340, r=80, b=30),
         xaxis_title="Percent Annual Energy Demand in 2022 (%)",
         yaxis_title="Unit Operation Classification",
-        font=dict(
-            family="Arial, sans-serif",
-            color=TEXT_COLOR,
-            size=14
-        )
+        font=dict(family="Arial, sans-serif", color=TEXT_COLOR, size=14)
     )
 
     fig.update_xaxes(showgrid=True, automargin=True)
@@ -440,7 +428,6 @@ def build_annual_energy_donut(fact_sheet: dict):
     })
 
     donut_df = donut_df[donut_df["Value"] > 0].copy()
-
     if donut_df.empty:
         return None
 
@@ -458,11 +445,7 @@ def build_annual_energy_donut(fact_sheet: dict):
     fig.update_traces(
         textposition="outside",
         texttemplate="%{label}<br>%{percent}",
-        hovertemplate=(
-            "<b>%{label}</b><br>"
-            "Value: %{value:.3f} PJ/yr<br>"
-            "Share: %{percent}<extra></extra>"
-        ),
+        hovertemplate="<b>%{label}</b><br>Value: %{value:.3f} PJ/yr<br>Share: %{percent}<extra></extra>",
         marker=dict(line=dict(color="#FFFFFF", width=2))
     )
 
@@ -472,17 +455,11 @@ def build_annual_energy_donut(fact_sheet: dict):
         paper_bgcolor=PAPER_BG,
         plot_bgcolor=PLOT_BG,
         showlegend=False,
-        font=dict(
-            family="Arial, sans-serif",
-            color=TEXT_COLOR,
-            size=13
-        ),
+        font=dict(family="Arial, sans-serif", color=TEXT_COLOR, size=13),
         annotations=[
             dict(
                 text=f"<b>Total (PJ/yr)</b><br>{total_energy:.2f}",
-                x=0.5,
-                y=0.5,
-                showarrow=False,
+                x=0.5, y=0.5, showarrow=False,
                 font=dict(size=16, color=TEXT_COLOR)
             )
         ]
@@ -493,7 +470,6 @@ def build_annual_energy_donut(fact_sheet: dict):
 
 def build_temperature_donut(fact_sheet: dict):
     donut_df = fact_sheet["Temperature Breakdown"].copy()
-
     if donut_df.empty:
         return None
 
@@ -511,11 +487,7 @@ def build_temperature_donut(fact_sheet: dict):
     fig.update_traces(
         textposition="outside",
         texttemplate="%{label}<br>%{percent}",
-        hovertemplate=(
-            "<b>%{label}</b><br>"
-            "Value: %{value:.3f} PJ/yr<br>"
-            "Share: %{percent}<extra></extra>"
-        ),
+        hovertemplate="<b>%{label}</b><br>Value: %{value:.3f} PJ/yr<br>Share: %{percent}<extra></extra>",
         marker=dict(line=dict(color="#FFFFFF", width=2))
     )
 
@@ -525,17 +497,11 @@ def build_temperature_donut(fact_sheet: dict):
         paper_bgcolor=PAPER_BG,
         plot_bgcolor=PLOT_BG,
         showlegend=False,
-        font=dict(
-            family="Arial, sans-serif",
-            color=TEXT_COLOR,
-            size=13
-        ),
+        font=dict(family="Arial, sans-serif", color=TEXT_COLOR, size=13),
         annotations=[
             dict(
                 text=f"<b>Total (PJ/yr)</b><br>{total_energy:.2f}",
-                x=0.5,
-                y=0.5,
-                showarrow=False,
+                x=0.5, y=0.5, showarrow=False,
                 font=dict(size=16, color=TEXT_COLOR)
             )
         ]
@@ -556,15 +522,11 @@ try:
 
     with left_col:
         st.subheader("Percent Annual Energy by Unit Operation Classification")
-
         st.plotly_chart(
             build_bar_chart(bar_df),
             use_container_width=False,
             theme=None,
-            config={
-                "displayModeBar": False,
-                "scrollZoom": False
-            }
+            config={"displayModeBar": False, "scrollZoom": False}
         )
 
     with right_col:
@@ -581,12 +543,7 @@ try:
             donut_fig = build_annual_energy_donut(fact_sheet)
 
             if donut_fig is not None:
-                st.plotly_chart(
-                    donut_fig,
-                    use_container_width=True,
-                    theme=None,
-                    config={"displayModeBar": False}
-                )
+                st.plotly_chart(donut_fig, use_container_width=True, theme=None, config={"displayModeBar": False})
             else:
                 st.info("No positive annual energy values available for the selected category.")
 
@@ -594,12 +551,7 @@ try:
             temp_donut_fig = build_temperature_donut(fact_sheet)
 
             if temp_donut_fig is not None:
-                st.plotly_chart(
-                    temp_donut_fig,
-                    use_container_width=True,
-                    theme=None,
-                    config={"displayModeBar": False}
-                )
+                st.plotly_chart(temp_donut_fig, use_container_width=True, theme=None, config={"displayModeBar": False})
             else:
                 st.info(
                     f"No positive annual energy values with valid "
