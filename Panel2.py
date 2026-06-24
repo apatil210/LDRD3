@@ -563,7 +563,8 @@ try:
             else:
                 st.info("No positive annual energy values available for the selected category.")
 
-            st.subheader("Annual Energy by Temperature Level")
+            # st.subheader("Annual Energy by Temperature Level")
+            st.caption("Categorization by Process Temperature")
             temp_donut_fig = build_temperature_donut(fact_sheet)
 
             if temp_donut_fig is not None:
