@@ -482,7 +482,7 @@ try:
 
             st.subheader("Specific Energy Consumption (SEC)")
 
-            st.caption("By SEC source")
+            st.caption("Categorization by Energy Source")
             st.plotly_chart(
                 build_sec_donut(fact_sheet),
                 use_container_width=True,
@@ -490,7 +490,7 @@ try:
                 config={"displayModeBar": False}
             )
 
-            st.caption("By process temperature range")
+            st.caption("Categorization by Process Temperature")
             st.plotly_chart(
                 build_temp_sec_donut(fact_sheet),
                 use_container_width=True,
