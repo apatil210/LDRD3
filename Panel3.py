@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from pathlib import Path
 
 st.set_page_config(
     page_title="US Manufacturing Energy Classification: Unit Operations",
@@ -12,10 +11,10 @@ SHEET_NAME = "Process-level data"
 LOCAL_FILE = "DatasetJune24Part2.xlsx"
 
 EXPECTED = {
-    "naics_l2": "NAICS Level 2",   # column AR
-    "naics_l1": "NAICS Level 1",   # column AS
+    "naics_l2": "NAICS Level 2",
+    "naics_l1": "NAICS Level 1",
     "industrial_process": "Industrial process",
-    "coverage": "Percent Coverage of NAICS (3-digit) Sector",
+    "percent_energy": "Percent Annual energy demand in 2022",
     "annual_energy": "Annual energy demand in 2022",
     "annual_electricity": "Annual electricity demand in 2022",
     "annual_fuels": "Annual fuels demand in 2022",
@@ -116,10 +115,10 @@ if missing:
     st.write("Available columns:", list(df.columns))
     st.stop()
 
-naics_l1_col = cols["naics_l1"]                  # AS
-naics_l2_col = cols["naics_l2"]                  # AR
+naics_l1_col = cols["naics_l1"]
+naics_l2_col = cols["naics_l2"]
 industrial_process_col = cols["industrial_process"]
-coverage_col = cols["coverage"]
+percent_energy_col = cols["percent_energy"]
 annual_energy_col = cols["annual_energy"]
 annual_electricity_col = cols["annual_electricity"]
 annual_fuels_col = cols["annual_fuels"]
@@ -130,9 +129,8 @@ selected_naics = st.selectbox("NAICS Level 1", naics_options, index=0)
 
 df_filtered = df[df[naics_l1_col].astype(str) == str(selected_naics)].copy()
 
-coverage_values = pd.to_numeric(df_filtered[coverage_col], errors="coerce").dropna()
-coverage = coverage_values.max() if not coverage_values.empty else None
-coverage_text = f"{coverage:.2%}" if coverage is not None else "N/A"
+coverage = num(df_filtered[percent_energy_col]).sum()
+coverage_text = f"{coverage:.2%}" if coverage > 0 else "N/A"
 
 st.markdown(
     f'<div class="coverage-label">Total Sector Coverage of {selected_naics}: {coverage_text}</div>',
