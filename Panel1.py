@@ -1,4 +1,5 @@
 from io import BytesIO
+
 import pandas as pd
 import plotly.express as px
 import plotly.io as pio
@@ -295,7 +296,8 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
 
     sec_total_col = "SEC"
 
-    # Excel columns W, X, Y -> zero-based positions 22, 23, 24
+    # Excel columns U, W, X, Y -> zero-based positions 20, 22, 23, 24
+    temp_sec_idx = 20
     elec_idx = 22
     fuel_idx = 23
     steam_idx = 24
@@ -333,6 +335,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
         if col in selected_df.columns:
             selected_df[col] = pd.to_numeric(selected_df[col], errors="coerce")
 
+    selected_df.iloc[:, temp_sec_idx] = pd.to_numeric(selected_df.iloc[:, temp_sec_idx], errors="coerce")
     selected_df.iloc[:, elec_idx] = pd.to_numeric(selected_df.iloc[:, elec_idx], errors="coerce")
     selected_df.iloc[:, fuel_idx] = pd.to_numeric(selected_df.iloc[:, fuel_idx], errors="coerce")
     selected_df.iloc[:, steam_idx] = pd.to_numeric(selected_df.iloc[:, steam_idx], errors="coerce")
@@ -341,12 +344,8 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     if process_temp_col in selected_df.columns:
         selected_df["Temp for Donut"] = selected_df["Temp for Donut"].fillna(selected_df[process_temp_col])
 
-    selected_df["Row SEC Total"] = selected_df[sec_total_col]
-    selected_df["Row SEC Total"] = selected_df["Row SEC Total"].fillna(
-        selected_df.iloc[:, elec_idx].fillna(0)
-        + selected_df.iloc[:, fuel_idx].fillna(0)
-        + selected_df.iloc[:, steam_idx].fillna(0)
-    )
+    # Use Column U directly for temperature donut SEC values
+    selected_df["Temp SEC Value"] = selected_df.iloc[:, temp_sec_idx]
 
     naics_series = (
         selected_df.iloc[:, naics_idx]
@@ -371,9 +370,9 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     sec_fuels = selected_df.iloc[:, fuel_idx].fillna(0).sum()
     sec_steam = selected_df.iloc[:, steam_idx].fillna(0).sum()
 
-    temp_sec_df = selected_df[["Temp for Donut", "Row SEC Total"]].copy()
+    temp_sec_df = selected_df[["Temp for Donut", "Temp SEC Value"]].copy()
     temp_sec_df = temp_sec_df.dropna(subset=["Temp for Donut"]).copy()
-    temp_sec_df = temp_sec_df[temp_sec_df["Row SEC Total"].fillna(0) > 0].copy()
+    temp_sec_df = temp_sec_df[temp_sec_df["Temp SEC Value"].fillna(0) > 0].copy()
 
     temp_sec_df["Temperature Range"] = pd.cut(
         temp_sec_df["Temp for Donut"],
@@ -383,9 +382,9 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     )
 
     temp_breakdown = (
-        temp_sec_df.groupby("Temperature Range", observed=False, as_index=False)["Row SEC Total"]
+        temp_sec_df.groupby("Temperature Range", observed=False, as_index=False)["Temp SEC Value"]
         .sum()
-        .rename(columns={"Row SEC Total": "Value"})
+        .rename(columns={"Temp SEC Value": "Value"})
     )
 
     all_ranges = pd.DataFrame({
@@ -402,6 +401,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     detail_df = pd.DataFrame({
         "Unit Operations": selected_df[unit_ops_col],
         "SEC Total (GJ/t)": selected_df[sec_total_col],
+        "SEC from Column U (GJ/t)": selected_df.iloc[:, temp_sec_idx],
         "SEC Electricity (GJ/t)": selected_df.iloc[:, elec_idx],
         "SEC Fuels (GJ/t)": selected_df.iloc[:, fuel_idx],
         "SEC Steam (GJ/t)": selected_df.iloc[:, steam_idx],
