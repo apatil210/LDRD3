@@ -47,7 +47,6 @@ COL_L3 = "Industrial process"
 COL_PERCENT_ENERGY = "Percent Annual energy demand in 2022"
 
 COL_ANNUAL_PRODUCTION = "Annual production in 2022\n(based on FU)"
-COL_ANNUAL_ENERGY = "Annual energy demand in 2022"
 
 COL_SEC_ELECTRICITY = "SEC electricity"
 COL_SEC_FUELS = "SEC fuels"
@@ -64,12 +63,15 @@ COL_OUTLET_PRESSURE = "Outlet pressure"
 COL_RESIDENCE_TIME = "Residence time"
 COL_NAICS = "NAICS Level 2 Code Number"
 
-# fixed excel columns (1-based)
-EXCEL_COL_K = 11
-EXCEL_COL_E = 5
-EXCEL_COL_AW = 49
-EXCEL_COL_AX = 50
-EXCEL_COL_AY = 51
+# ----------------------------
+# Exact Excel columns (1-based)
+# ----------------------------
+EXCEL_COL_E = 5    # Description
+EXCEL_COL_K = 11   # Temperature for webpage
+EXCEL_COL_AU = 47  # Annual energy
+EXCEL_COL_AW = 49  # Annual electricity
+EXCEL_COL_AX = 50  # Annual fuels
+EXCEL_COL_AY = 51  # Annual steam
 
 # ----------------------------
 # Header utilities
@@ -155,15 +157,16 @@ def load_excel_data(url: str) -> pd.DataFrame:
     wb = load_workbook(filename=BytesIO(response.content), data_only=True)
     ws = wb[SHEET_NAME]
 
-    header_row_excel = 2   # row with actual field names
-    data_start_excel = 4   # data starts after grouped labels, headers, units
+    header_row_excel = 2
+    data_start_excel = 4
 
     max_col = ws.max_column
     max_row = ws.max_row
 
-    headers = []
-    for c in range(1, max_col + 1):
-        headers.append(ws.cell(row=header_row_excel, column=c).value)
+    headers = [
+        ws.cell(row=header_row_excel, column=c).value
+        for c in range(1, max_col + 1)
+    ]
 
     rows = []
     for r in range(data_start_excel, max_row + 1):
@@ -172,15 +175,15 @@ def load_excel_data(url: str) -> pd.DataFrame:
             continue
         rows.append(row_values)
 
-    df = pd.DataFrame(rows, columns=[str(h) if h is not None else f"Unnamed_{i+1}" for i, h in enumerate(headers)])
+    df = pd.DataFrame(
+        rows,
+        columns=[str(h) if h is not None else f"Unnamed_{i+1}" for i, h in enumerate(headers)]
+    )
 
-    # Force exact Excel column K into a named dataframe column for the webpage logic
+    # Force exact Excel columns into stable dataframe columns
     df[COL_PROCESS_TEMP_WEB] = pd.Series([row[EXCEL_COL_K - 1] for row in rows])
-
-    # Keep exact Excel E text available
     df["_Description_Excel_E"] = pd.Series([row[EXCEL_COL_E - 1] for row in rows])
-
-    # Keep exact Excel AW/AX/AY values available
+    df["_Annual_Energy_AU"] = pd.Series([row[EXCEL_COL_AU - 1] for row in rows])
     df["_Annual_Electricity_AW"] = pd.Series([row[EXCEL_COL_AW - 1] for row in rows])
     df["_Annual_Fuels_AX"] = pd.Series([row[EXCEL_COL_AX - 1] for row in rows])
     df["_Annual_Steam_AY"] = pd.Series([row[EXCEL_COL_AY - 1] for row in rows])
@@ -227,7 +230,6 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     l2_col = find_matching_column(df, COL_L2)
     l3_col = find_matching_column(df, COL_L3)
     annual_prod_col = find_matching_column(df, COL_ANNUAL_PRODUCTION)
-    annual_energy_col = find_matching_column(df, COL_ANNUAL_ENERGY)
 
     sec_elec_col = find_matching_column(df, COL_SEC_ELECTRICITY)
     sec_fuels_col = find_matching_column(df, COL_SEC_FUELS)
@@ -243,6 +245,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     residence_time_col = find_matching_column(df, COL_RESIDENCE_TIME)
     naics_col = find_matching_column(df, COL_NAICS)
 
+    annual_energy_col = "_Annual_Energy_AU"
     annual_elec_col = "_Annual_Electricity_AW"
     annual_fuels_col = "_Annual_Fuels_AX"
     annual_steam_col = "_Annual_Steam_AY"
@@ -276,13 +279,13 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     for col in numeric_cols:
         selected_df[col] = to_numeric_safe(selected_df[col])
 
-    annual_production_values = (
+    production_values = (
         selected_df[annual_prod_col]
         .dropna()
         .loc[lambda s: s != 0]
         .unique()
     )
-    annual_production = annual_production_values[0] if len(annual_production_values) > 0 else 0
+    annual_production = production_values[0] if len(production_values) > 0 else 0
 
     annual_energy = selected_df[annual_energy_col].fillna(0).sum()
     annual_electricity = selected_df[annual_elec_col].fillna(0).sum()
@@ -293,10 +296,12 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
 
     temp_energy_df = pd.DataFrame({
         "Temperature Raw": selected_df[process_temp_web_col],
-        "Annual Energy": selected_df[annual_energy_col],
-    }).dropna(subset=["Temperature Raw", "Annual Energy"])
+        "Annual Energy AU": selected_df[annual_energy_col],
+    }).dropna(subset=["Temperature Raw", "Annual Energy AU"])
 
-    temp_energy_df = temp_energy_df[temp_energy_df["Annual Energy"] > 0].copy()
+    # Pie/donut values must be non-negative; use magnitude from AU
+    temp_energy_df["Annual Energy Magnitude"] = temp_energy_df["Annual Energy AU"].abs()
+    temp_energy_df = temp_energy_df[temp_energy_df["Annual Energy Magnitude"] > 0].copy()
 
     if not temp_energy_df.empty:
         temp_energy_df["Temperature Level"] = pd.cut(
@@ -307,10 +312,10 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         )
 
         temp_breakdown_df = (
-            temp_energy_df.groupby("Temperature Level", observed=False)["Annual Energy"]
+            temp_energy_df.groupby("Temperature Level", observed=False)["Annual Energy Magnitude"]
             .sum()
             .reset_index()
-            .rename(columns={"Annual Energy": "Value"})
+            .rename(columns={"Annual Energy Magnitude": "Value"})
         )
 
         temp_breakdown_df = temp_breakdown_df[temp_breakdown_df["Value"] > 0].copy()
@@ -328,13 +333,13 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
             efficiency_col,
             process_temp_col,
             process_temp_web_col,
+            annual_energy_col,
             inlet_temp_col,
             outlet_temp_col,
             process_pressure_col,
             inlet_pressure_col,
             outlet_pressure_col,
             residence_time_col,
-            annual_energy_col,
         ]
     ].rename(columns={
         l3_col: "List of Industry Application",
@@ -346,22 +351,16 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         efficiency_col: "Efficiency (%)",
         process_temp_col: "Process temperature (°C)",
         process_temp_web_col: "Process Temperature for Webpage (°C)",
+        annual_energy_col: "Annual Energy from AU",
         inlet_temp_col: "Inlet temperature (°C)",
         outlet_temp_col: "Outlet temperature (°C)",
         process_pressure_col: "Process pressure (bar)",
         inlet_pressure_col: "Inlet pressure (bar)",
         outlet_pressure_col: "Outlet pressure (bar)",
         residence_time_col: "Residence time (sec)",
-        annual_energy_col: "Annual energy demand in 2022",
     })
 
-    debug_temp_df = selected_df[[l2_col, l3_col, process_temp_web_col, annual_energy_col]].copy()
-    debug_temp_df = debug_temp_df.rename(columns={
-        l2_col: "Selected L2",
-        l3_col: "Industrial process",
-        process_temp_web_col: "Process Temperature for Webpage",
-        annual_energy_col: "Annual Energy"
-    })
+    debug_temp_df = temp_energy_df.copy()
 
     return {
         "Annual Production": annual_production,
@@ -373,6 +372,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         "Rows": len(selected_df),
         "Details": detail_df,
         "Temperature Source Column": process_temp_web_col,
+        "Annual Energy Source Column": "AU",
         "Debug Temp Energy": debug_temp_df,
     }
 
@@ -393,10 +393,7 @@ def build_bar_chart(df: pd.DataFrame):
         texttemplate="%{text:.1f}%",
         textposition="outside",
         cliponaxis=False,
-        hovertemplate=(
-            "<b>%{y}</b><br>"
-            "Summed percent annual energy: %{x:.4f}%<extra></extra>"
-        ),
+        hovertemplate="<b>%{y}</b><br>Summed percent annual energy: %{x:.4f}%<extra></extra>",
         marker=dict(line=dict(color="#FCFCFA", width=1.2))
     )
 
@@ -487,7 +484,7 @@ def build_temperature_donut(fact_sheet: dict):
     fig.update_traces(
         textposition="outside",
         texttemplate="%{label}<br>%{percent}",
-        hovertemplate="<b>%{label}</b><br>Value: %{value:.3f} PJ/yr<br>Share: %{percent}<extra></extra>",
+        hovertemplate="<b>%{label}</b><br>Energy magnitude from AU: %{value:.3f}<br>Share: %{percent}<extra></extra>",
         marker=dict(line=dict(color="#FFFFFF", width=2))
     )
 
@@ -500,7 +497,7 @@ def build_temperature_donut(fact_sheet: dict):
         font=dict(family="Arial, sans-serif", color=TEXT_COLOR, size=13),
         annotations=[
             dict(
-                text=f"<b>Total (PJ/yr)</b><br>{total_energy:.2f}",
+                text=f"<b>Total from AU</b><br>{total_energy:.2f}",
                 x=0.5, y=0.5, showarrow=False,
                 font=dict(size=16, color=TEXT_COLOR)
             )
@@ -539,22 +536,32 @@ try:
 
         if fact_sheet is not None:
             st.subheader("Total Annual Energy Breakdown")
+
             st.caption("Categorization by Energy Source")
             donut_fig = build_annual_energy_donut(fact_sheet)
-
             if donut_fig is not None:
-                st.plotly_chart(donut_fig, use_container_width=True, theme=None, config={"displayModeBar": False})
+                st.plotly_chart(
+                    donut_fig,
+                    use_container_width=True,
+                    theme=None,
+                    config={"displayModeBar": False}
+                )
             else:
                 st.info("No positive annual energy values available for the selected category.")
 
             st.caption("Categorization by Process Temperature")
             temp_donut_fig = build_temperature_donut(fact_sheet)
-
             if temp_donut_fig is not None:
-                st.plotly_chart(temp_donut_fig, use_container_width=True, theme=None, config={"displayModeBar": False})
+                st.plotly_chart(
+                    temp_donut_fig,
+                    use_container_width=True,
+                    theme=None,
+                    config={"displayModeBar": False}
+                )
             else:
                 st.info(
-                    f"No positive annual energy values with valid "
+                    f"No nonzero annual energy magnitudes from column "
+                    f"{fact_sheet['Annual Energy Source Column']} with valid "
                     f"'{fact_sheet['Temperature Source Column']}' temperatures are available for the selected category."
                 )
 
