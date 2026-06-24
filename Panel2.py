@@ -31,6 +31,13 @@ ENERGY_COLOR_MAP = {
     "Annual Steam": "#4C78A8",
 }
 
+TEMP_COLOR_MAP = {
+    "<100 °C": "#72B7B2",
+    "100-200 °C": "#54A24B",
+    "200-400 °C": "#EECA3B",
+    ">400 °C": "#E45756",
+}
+
 # ----------------------------
 # Exact workbook column names
 # ----------------------------
@@ -423,6 +430,96 @@ def build_annual_energy_donut(fact_sheet: dict):
     return fig
 
 
+def build_temperature_energy_donut(df: pd.DataFrame, selected_l2: str):
+    l2_col = find_matching_column(df, COL_L2)
+    annual_energy_col = find_matching_column(df, COL_ANNUAL_ENERGY)
+    process_temp_col = find_matching_column(df, COL_PROCESS_TEMP)
+
+    temp_df = df[[l2_col, annual_energy_col, process_temp_col]].copy()
+    temp_df[l2_col] = clean_category(temp_df[l2_col])
+
+    temp_df = temp_df[temp_df[l2_col] == selected_l2].copy()
+
+    if temp_df.empty:
+        return None
+
+    temp_df[annual_energy_col] = to_numeric_safe(temp_df[annual_energy_col])
+    temp_df[process_temp_col] = to_numeric_safe(temp_df[process_temp_col])
+
+    temp_df = temp_df.dropna(subset=[annual_energy_col, process_temp_col]).copy()
+    temp_df = temp_df[temp_df[annual_energy_col] > 0].copy()
+
+    if temp_df.empty:
+        return None
+
+    temp_df["Temperature Level"] = pd.cut(
+        temp_df[process_temp_col],
+        bins=[-float("inf"), 100, 200, 400, float("inf")],
+        labels=["<100 °C", "100-200 °C", "200-400 °C", ">400 °C"],
+        right=False
+    )
+
+    donut_df = (
+        temp_df.groupby("Temperature Level", as_index=False)[annual_energy_col]
+        .sum()
+        .rename(columns={annual_energy_col: "Value"})
+    )
+
+    donut_df = donut_df[donut_df["Value"] > 0].copy()
+
+    if donut_df.empty:
+        return None
+
+    fig = px.pie(
+        donut_df,
+        names="Temperature Level",
+        values="Value",
+        hole=0.62,
+        color="Temperature Level",
+        color_discrete_map=TEMP_COLOR_MAP,
+        category_orders={
+            "Temperature Level": ["<100 °C", "100-200 °C", "200-400 °C", ">400 °C"]
+        }
+    )
+
+    total_energy = donut_df["Value"].sum()
+
+    fig.update_traces(
+        textposition="outside",
+        texttemplate="%{label}<br>%{percent}",
+        hovertemplate=(
+            "<b>%{label}</b><br>"
+            "Value: %{value:.3f} PJ/yr<br>"
+            "Share: %{percent}<extra></extra>"
+        ),
+        marker=dict(line=dict(color="#FFFFFF", width=2))
+    )
+
+    fig.update_layout(
+        height=360,
+        margin=dict(t=20, l=20, r=20, b=20),
+        paper_bgcolor=PAPER_BG,
+        plot_bgcolor=PLOT_BG,
+        showlegend=False,
+        font=dict(
+            family="Arial, sans-serif",
+            color=TEXT_COLOR,
+            size=13
+        ),
+        annotations=[
+            dict(
+                text=f"<b>Total (PJ/yr)</b><br>{total_energy:.2f}",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
+                font=dict(size=16, color=TEXT_COLOR)
+            )
+        ]
+    )
+
+    return fig
+
+
 # ----------------------------
 # App UI
 # ----------------------------
@@ -470,6 +567,19 @@ try:
                 )
             else:
                 st.info("No positive annual energy values available for the selected category.")
+
+            st.subheader("Annual Energy by Temperature Level")
+            temp_donut_fig = build_temperature_energy_donut(df, selected_l2)
+
+            if temp_donut_fig is not None:
+                st.plotly_chart(
+                    temp_donut_fig,
+                    use_container_width=True,
+                    theme=None,
+                    config={"displayModeBar": False}
+                )
+            else:
+                st.info("No positive annual energy values with valid process temperatures are available for the selected category.")
 
             st.dataframe(
                 fact_sheet["Details"],
