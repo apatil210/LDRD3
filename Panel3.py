@@ -374,14 +374,10 @@ with left_col:
 
 with right_col:
     st.markdown(
-        '<div class="section-title" style="font-size: 1.05rem; margin-top: 1.2rem;">Total Annual Energy Breakdown</div>',
+        '<div class="section-title" style="font-size: 1.05rem; margin-top: 1.2rem;">Total Annual Energy Breakdown: Energy Source</div>',
         unsafe_allow_html=True,
     )
-    st.markdown(
-        '<div class="section-subtitle">Categorization by Energy Source</div>',
-        unsafe_allow_html=True,
-    )
-
+ 
     if not breakdown_df.empty:
         fig_donut = px.pie(
             breakdown_df,
@@ -423,14 +419,10 @@ with right_col:
         st.info("No annual energy breakdown is available for this selection.")
 
     st.markdown(
-        '<div class="section-title" style="font-size: 1.05rem; margin-top: 1.2rem;">Total Annual Energy Breakdown</div>',
+        '<div class="section-title" style="font-size: 1.05rem; margin-top: 1.2rem;">Total Annual Energy Breakdown: Industrial Process</div>',
         unsafe_allow_html=True,
     )
-    st.markdown(
-        '<div class="section-subtitle" style="margin-top: 1rem;">Categorization by Industrial Process</div>',
-        unsafe_allow_html=True,
-    )
-
+   
     if not process_df.empty:
         top_process = process_df.head(8).copy()
         fig_process = px.bar(
