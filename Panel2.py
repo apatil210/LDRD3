@@ -67,6 +67,8 @@ COL_RESIDENCE_TIME = "Residence time"
 
 COL_NAICS = "NAICS Level 2 Code Number"
 
+TEMP_COLUMN_INDEX = 10  # Excel Column K (0-based index in pandas)
+
 
 # ----------------------------
 # Header utilities
@@ -277,21 +279,29 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     annual_fuels = selected_df[annual_fuels_col].fillna(0).sum()
     annual_steam = selected_df[annual_steam_col].fillna(0).sum()
 
-    temp_energy_df = selected_df[[process_temp_col, annual_energy_col]].copy()
-    temp_energy_df = temp_energy_df.dropna(subset=[process_temp_col, annual_energy_col])
+    if len(selected_df.columns) <= TEMP_COLUMN_INDEX:
+        raise KeyError(
+            f"Expected temperature source at Excel Column K (index {TEMP_COLUMN_INDEX}), "
+            f"but the parsed sheet has only {len(selected_df.columns)} columns."
+        )
+
+    temp_energy_df = pd.DataFrame({
+        "Temperature Raw": to_numeric_safe(selected_df.iloc[:, TEMP_COLUMN_INDEX]),
+        "Annual Energy": to_numeric_safe(selected_df[annual_energy_col]),
+    }).dropna(subset=["Temperature Raw", "Annual Energy"])
 
     temp_energy_df["Temperature Level"] = pd.cut(
-        temp_energy_df[process_temp_col],
+        temp_energy_df["Temperature Raw"],
         bins=[-float("inf"), 100, 200, 400, float("inf")],
         labels=["<100 °C", "100-200 °C", "200-400 °C", ">400 °C"],
         right=False
     )
 
     temp_breakdown_df = (
-        temp_energy_df.groupby("Temperature Level", observed=False)[annual_energy_col]
+        temp_energy_df.groupby("Temperature Level", observed=False)["Annual Energy"]
         .sum()
         .reset_index()
-        .rename(columns={annual_energy_col: "Value"})
+        .rename(columns={"Annual Energy": "Value"})
     )
 
     temp_breakdown_df = temp_breakdown_df[temp_breakdown_df["Value"] > 0].copy()
@@ -563,7 +573,7 @@ try:
                     config={"displayModeBar": False}
                 )
             else:
-                st.info("No positive annual energy values with valid process temperatures are available for the selected category.")
+                st.info("No positive annual energy values with valid Column K temperatures are available for the selected category.")
 
             st.dataframe(
                 fact_sheet["Details"],
