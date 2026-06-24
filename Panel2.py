@@ -58,6 +58,7 @@ COL_SEC_STEAM = "SEC fuels or electricity for steam or steam from CHP"
 
 COL_EFFICIENCY = "Efficiency"
 COL_PROCESS_TEMP = "Process temperature"
+COL_PROCESS_TEMP_WEBPAGE = "Process Temperature for Webpage"
 COL_INLET_TEMP = "Inlet temperature"
 COL_OUTLET_TEMP = "Outlet temperature"
 COL_PROCESS_PRESSURE = "Process pressure"
@@ -67,7 +68,6 @@ COL_RESIDENCE_TIME = "Residence time"
 
 COL_NAICS = "NAICS Level 2 Code Number"
 
-TEMP_COLUMN_INDEX = 10   # Excel Column K (0-based index in pandas)
 DESCRIPTION_COLUMN_INDEX = 4  # Excel Column E (0-based index in pandas)
 
 # ----------------------------
@@ -119,7 +119,7 @@ def load_excel_data(url: str) -> pd.DataFrame:
         engine="openpyxl"
     )
 
-    # The workbook uses:
+    # Workbook structure:
     # row 0 = grouped section labels
     # row 1 = actual field names
     # row 2 = units
@@ -225,10 +225,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     annual_prod_col = find_matching_column(df, COL_ANNUAL_PRODUCTION)
     annual_energy_col = find_matching_column(df, COL_ANNUAL_ENERGY)
 
-    # Use fixed Excel columns:
-    # AW = Annual Electricity
-    # AX = Annual Fuels
-    # AY = Annual Steam
+    # Fixed parsed columns for AW, AX, AY as used in your workbook
     if len(df.columns) <= 50:
         raise KeyError(
             "Expected Excel columns AW, AX, and AY, but the sheet has fewer than 51 columns after parsing."
@@ -243,6 +240,10 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     sec_steam_col = find_matching_column(df, COL_SEC_STEAM)
 
     efficiency_col = find_matching_column(df, COL_EFFICIENCY)
+
+    # Explicitly use the Excel header: "Process Temperature for Webpage"
+    process_temp_web_col = find_matching_column(df, COL_PROCESS_TEMP_WEBPAGE)
+
     process_temp_col = find_matching_column(df, COL_PROCESS_TEMP)
     inlet_temp_col = find_matching_column(df, COL_INLET_TEMP)
     outlet_temp_col = find_matching_column(df, COL_OUTLET_TEMP)
@@ -272,6 +273,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         sec_fuels_col,
         sec_steam_col,
         process_temp_col,
+        process_temp_web_col,
     ]
 
     for col in numeric_cols:
@@ -291,12 +293,6 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     annual_fuels = selected_df[annual_fuels_col].fillna(0).sum()
     annual_steam = selected_df[annual_steam_col].fillna(0).sum()
 
-    if len(selected_df.columns) <= TEMP_COLUMN_INDEX:
-        raise KeyError(
-            f"Expected temperature source at Excel Column K (index {TEMP_COLUMN_INDEX}), "
-            f"but the parsed sheet has only {len(selected_df.columns)} columns."
-        )
-
     if len(selected_df.columns) <= DESCRIPTION_COLUMN_INDEX:
         raise KeyError(
             f"Expected description source at Excel Column E (index {DESCRIPTION_COLUMN_INDEX}), "
@@ -305,10 +301,13 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
 
     description_col = selected_df.columns[DESCRIPTION_COLUMN_INDEX]
 
+    # Corrected: use the named header "Process Temperature for Webpage"
     temp_energy_df = pd.DataFrame({
-        "Temperature Raw": to_numeric_safe(selected_df.iloc[:, TEMP_COLUMN_INDEX]),
+        "Temperature Raw": to_numeric_safe(selected_df[process_temp_web_col]),
         "Annual Energy": to_numeric_safe(selected_df[annual_energy_col]),
     }).dropna(subset=["Temperature Raw", "Annual Energy"])
+
+    temp_energy_df = temp_energy_df[temp_energy_df["Annual Energy"] > 0].copy()
 
     temp_energy_df["Temperature Level"] = pd.cut(
         temp_energy_df["Temperature Raw"],
@@ -338,6 +337,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
             sec_steam_col,
             efficiency_col,
             process_temp_col,
+            process_temp_web_col,
             inlet_temp_col,
             outlet_temp_col,
             process_pressure_col,
@@ -354,6 +354,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         sec_steam_col: "SEC Steam (GJ/t)",
         efficiency_col: "Efficiency (%)",
         process_temp_col: "Process temperature (°C)",
+        process_temp_web_col: "Process Temperature for Webpage (°C)",
         inlet_temp_col: "Inlet temperature (°C)",
         outlet_temp_col: "Outlet temperature (°C)",
         process_pressure_col: "Process pressure (bar)",
@@ -371,6 +372,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         "Temperature Breakdown": temp_breakdown_df,
         "Rows": len(selected_df),
         "Details": detail_df,
+        "Temperature Source Column": process_temp_web_col,
     }
 
 
@@ -571,8 +573,6 @@ try:
         fact_sheet = build_fact_sheet(df, selected_l2)
 
         if fact_sheet is not None:
-            metric_col1, metric_col2 = st.columns(2)
-
             st.subheader("Total Annual Energy Breakdown")
             st.caption("Categorization by Energy Source")
             donut_fig = build_annual_energy_donut(fact_sheet)
@@ -598,7 +598,10 @@ try:
                     config={"displayModeBar": False}
                 )
             else:
-                st.info("No positive annual energy values with valid Column K temperatures are available for the selected category.")
+                st.info(
+                    f"No positive annual energy values with valid "
+                    f"'{fact_sheet['Temperature Source Column']}' temperatures are available for the selected category."
+                )
 
             st.dataframe(
                 fact_sheet["Details"],
