@@ -26,6 +26,13 @@ SEC_COLOR_MAP = {
     "SEC Steam": "#4C78A8",
 }
 
+TEMP_COLOR_MAP = {
+    "<100°C": "#72B7B2",
+    "100-200°C": "#54A24B",
+    "200-400°C": "#ECAE8B",
+    ">400°C": "#E45756",
+}
+
 
 @st.cache_data(show_spinner=False)
 def load_excel(url: str) -> pd.DataFrame:
@@ -230,6 +237,116 @@ def build_sec_donut(fact_sheet: dict):
     return fig
 
 
+def build_temp_donut(selected_df: pd.DataFrame):
+    process_temp_col = "Process temperature"
+    elec_col = "SEC \nelectricity"
+    fuel_col = "SEC \nfuels"
+    steam_col = "SEC \nfuels or electricity for steam or steam from CHP"
+
+    donut_df = selected_df[[process_temp_col, elec_col, fuel_col, steam_col]].copy()
+
+    donut_df[process_temp_col] = pd.to_numeric(donut_df[process_temp_col], errors="coerce")
+    donut_df[elec_col] = pd.to_numeric(donut_df[elec_col], errors="coerce").fillna(0)
+    donut_df[fuel_col] = pd.to_numeric(donut_df[fuel_col], errors="coerce").fillna(0)
+    donut_df[steam_col] = pd.to_numeric(donut_df[steam_col], errors="coerce").fillna(0)
+
+    donut_df["Total SEC"] = (
+        donut_df[elec_col] + donut_df[fuel_col] + donut_df[steam_col]
+    )
+
+    donut_df["Temperature Band"] = pd.cut(
+        donut_df[process_temp_col],
+        bins=[-float("inf"), 100, 200, 400, float("inf")],
+        labels=["<100°C", "100-200°C", "200-400°C", ">400°C"],
+        right=False
+    )
+
+    agg_df = (
+        donut_df.dropna(subset=["Temperature Band"])
+        .groupby("Temperature Band", as_index=False)["Total SEC"]
+        .sum()
+    )
+
+    agg_df = agg_df[agg_df["Total SEC"] > 0].copy()
+
+    if agg_df.empty:
+        fig = px.pie(
+            pd.DataFrame({"Temperature Band": ["No data"], "Total SEC": [1]}),
+            names="Temperature Band",
+            values="Total SEC",
+            hole=0.62
+        )
+        fig.update_traces(textinfo="label", hovertemplate="<b>No valid temperature data</b><extra></extra>")
+        fig.update_layout(
+            height=360,
+            margin=dict(t=20, l=20, r=20, b=20),
+            paper_bgcolor=PAPER_BG,
+            plot_bgcolor=PLOT_BG,
+            showlegend=False,
+            font=dict(
+                family="Arial, sans-serif",
+                color=TEXT_COLOR,
+                size=13
+            ),
+            annotations=[
+                dict(
+                    text="<b>SEC by Temp (GJ/t)</b><br>N/A",
+                    x=0.5,
+                    y=0.5,
+                    showarrow=False,
+                    font=dict(size=16, color=TEXT_COLOR)
+                )
+            ]
+        )
+        return fig
+
+    fig = px.pie(
+        agg_df,
+        names="Temperature Band",
+        values="Total SEC",
+        hole=0.62,
+        color="Temperature Band",
+        color_discrete_map=TEMP_COLOR_MAP
+    )
+
+    total_sec = agg_df["Total SEC"].sum()
+
+    fig.update_traces(
+        textposition="outside",
+        texttemplate="%{label}<br>%{percent}",
+        hovertemplate=(
+            "<b>%{label}</b><br>"
+            "Value: %{value:.3f}<br>"
+            "Share: %{percent}<extra></extra>"
+        ),
+        marker=dict(line=dict(color="#FFFFFF", width=2))
+    )
+
+    fig.update_layout(
+        height=360,
+        margin=dict(t=20, l=20, r=20, b=20),
+        paper_bgcolor=PAPER_BG,
+        plot_bgcolor=PLOT_BG,
+        showlegend=False,
+        font=dict(
+            family="Arial, sans-serif",
+            color=TEXT_COLOR,
+            size=13
+        ),
+        annotations=[
+            dict(
+                text=f"<b>SEC by Temp (GJ/t)</b><br>{total_sec:.2f}",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
+                font=dict(size=16, color=TEXT_COLOR)
+            )
+        ]
+    )
+
+    return fig
+
+
 def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     process_col = "Industrial process"
     unit_ops_col = "Unit operation (Level 3 classification; with details)"
@@ -329,7 +446,8 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
         "SEC Fuels": sec_fuels,
         "SEC Steam": sec_steam,
         "Rows": selected_df.shape[0],
-        "Details": detail_df
+        "Details": detail_df,
+        "Selected DF": selected_df
     }
 
 
@@ -370,12 +488,24 @@ try:
             c3.metric("NAICS Code", f"{fact_sheet['NAICS Code']}")
 
             st.subheader("Specific Energy Consumption (SEC)")
-            st.plotly_chart(
-                build_sec_donut(fact_sheet),
-                use_container_width=True,
-                theme=None,
-                config={"displayModeBar": False}
-            )
+
+            d1, d2 = st.columns(2)
+
+            with d1:
+                st.plotly_chart(
+                    build_sec_donut(fact_sheet),
+                    use_container_width=True,
+                    theme=None,
+                    config={"displayModeBar": False}
+                )
+
+            with d2:
+                st.plotly_chart(
+                    build_temp_donut(fact_sheet["Selected DF"]),
+                    use_container_width=True,
+                    theme=None,
+                    config={"displayModeBar": False}
+                )
 
             st.dataframe(
                 fact_sheet["Details"],
