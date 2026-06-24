@@ -17,7 +17,7 @@ st.set_page_config(
 
 pio.templates.default = "plotly"
 
-DATA_URL = "https://raw.githubusercontent.com/apatil210/LDRD3/main/DatasetJune24Part2.xlsx"
+DATA_URL = "https://raw.githubusercontent.com/apatil210/LDRD3/main/DatasetJune24.xlsx"
 SHEET_NAME = "Process-level data"
 
 TEXT_COLOR = "#14212B"
@@ -204,9 +204,18 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
     annual_prod_col = find_matching_column(df, COL_ANNUAL_PRODUCTION)
     annual_energy_col = find_matching_column(df, COL_ANNUAL_ENERGY)
 
-    annual_elec_col = find_matching_column(df, COL_ANNUAL_ELECTRICITY)
-    annual_fuels_col = find_matching_column(df, COL_ANNUAL_FUELS)
-    annual_steam_col = find_matching_column(df, COL_ANNUAL_STEAM)
+    # Use fixed Excel columns:
+    # AW = Annual Electricity
+    # AX = Annual Fuels
+    # AY = Annual Steam
+    if len(df.columns) <= 50:
+        raise KeyError(
+            "Expected Excel columns AW, AX, and AY, but the sheet has fewer than 51 columns after parsing."
+        )
+
+    annual_elec_col = df.columns[48]   # AW
+    annual_fuels_col = df.columns[49]  # AX
+    annual_steam_col = df.columns[50]  # AY
 
     sec_elec_col = find_matching_column(df, COL_SEC_ELECTRICITY)
     sec_fuels_col = find_matching_column(df, COL_SEC_FUELS)
@@ -423,22 +432,20 @@ try:
     df = load_excel_data(DATA_URL)
     bar_df = prepare_bar_data(df)
 
-    # Bar chart moved to the LEFT, fact sheet moved to the RIGHT
     left_col, right_col = st.columns([1.6, 1.1], gap="large")
 
     with left_col:
         st.subheader("Percent Annual Energy by Unit Operation Classification")
 
-       # with st.container(height=1000):
         st.plotly_chart(
-                build_bar_chart(bar_df),
-                use_container_width=False,
-                theme=None,
-                config={
-                    "displayModeBar": False,
-                    "scrollZoom": False
-                }
-            )
+            build_bar_chart(bar_df),
+            use_container_width=False,
+            theme=None,
+            config={
+                "displayModeBar": False,
+                "scrollZoom": False
+            }
+        )
 
     with right_col:
         selected_l2 = st.selectbox(
@@ -450,14 +457,6 @@ try:
 
         if fact_sheet is not None:
             metric_col1, metric_col2 = st.columns(2)
-            # metric_col1.metric(
-            #     "Annual Production (tonne/yr)",
-            #     f"{fact_sheet['Annual Production']:.2f}"
-            # )
-            # metric_col2.metric(
-            #     "Annual Energy (PJ/yr)",
-            #     f"{fact_sheet['Annual Energy']:.2f}"
-            # )
 
             st.subheader("Total Annual Energy Breakdown")
             donut_fig = build_annual_energy_donut(fact_sheet)
