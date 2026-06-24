@@ -155,14 +155,6 @@ st.markdown(
         color: #2f3042;
     }
 
-    .selector-label {
-        font-size: 0.95rem;
-        color: #4b4c5f;
-        margin-bottom: 0.3rem;
-        font-weight: 500;
-        line-height: 1.4;
-    }
-
     div[data-baseweb="select"] > div {
         background: #ffffff !important;
         border: 1px solid #dcdde3 !important;
@@ -184,13 +176,6 @@ st.markdown(
         background: transparent !important;
         border: none !important;
         padding: 0 !important;
-    }
-
-    .plot-caption {
-        font-size: 0.92rem;
-        color: #8b8b98;
-        margin-top: 0.5rem;
-        margin-bottom: 1rem;
     }
 
     .coverage-note {
@@ -388,18 +373,6 @@ with left_col:
         st.info("No NAICS Level 2 annual energy data is available for this selection.")
 
 with right_col:
-    st.markdown(
-        '<div class="selector-label">Select a unit operation (Level 2 classification) to generate a fact sheet</div>',
-        unsafe_allow_html=True,
-    )
-
-    unit_options = bar_df["NAICS Level 2"].astype(str).tolist() if not bar_df.empty else []
-    selected_unit = st.selectbox(
-        "Unit operation",
-        unit_options if unit_options else ["No options available"],
-        label_visibility="collapsed",
-    )
-
     st.markdown(
         '<div class="section-title" style="font-size: 1.05rem; margin-top: 1.2rem;">Total Annual Energy Breakdown</div>',
         unsafe_allow_html=True,
