@@ -27,10 +27,10 @@ SEC_COLOR_MAP = {
 }
 
 TEMP_COLOR_MAP = {
-    "<100 C": "#54A24B",
-    "100-200 C": "#EECA3B",
-    "200-400 C": "#F58518",
-    ">400 C": "#B279A2",
+    "<100°C": "#54A24B",
+    "100-200°C": "#EECA3B",
+    "200-400°C": "#F58518",
+    ">400°C": "#B279A2",
 }
 
 
@@ -376,7 +376,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     temp_sec_df["Temperature Range"] = pd.cut(
         temp_sec_df["Temp for Donut"],
         bins=[float("-inf"), 100, 200, 400, float("inf")],
-        labels=["<100 C", "100-200 C", "200-400 C", ">400 C"],
+        labels=["<100°C", "100-200°C", "200-400°C", ">400°C"],
         right=False
     )
 
