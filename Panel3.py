@@ -423,6 +423,10 @@ with right_col:
         st.info("No annual energy breakdown is available for this selection.")
 
     st.markdown(
+        '<div class="section-title" style="font-size: 1.05rem; margin-top: 1.2rem;">Total Annual Energy Breakdown</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
         '<div class="section-subtitle" style="margin-top: 1rem;">Categorization by Industrial Process</div>',
         unsafe_allow_html=True,
     )
