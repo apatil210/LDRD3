@@ -27,10 +27,10 @@ SEC_COLOR_MAP = {
 }
 
 TEMP_COLOR_MAP = {
-    "<100°C": "#72B7B2",
-    "100-200°C": "#54A24B",
-    "200-400°C": "#ECAE8B",
-    ">400°C": "#E45756",
+    "<100 C": "#54A24B",
+    "100-200 C": "#F2CF5B",
+    "200-400 C": "#F58518",
+    ">400 C": "#B279A2",
 }
 
 
@@ -237,86 +237,27 @@ def build_sec_donut(fact_sheet: dict):
     return fig
 
 
-def build_temp_donut(selected_df: pd.DataFrame):
-    process_temp_col = "Process temperature"
-    elec_col = "SEC \nelectricity"
-    fuel_col = "SEC \nfuels"
-    steam_col = "SEC \nfuels or electricity for steam or steam from CHP"
-
-    donut_df = selected_df[[process_temp_col, elec_col, fuel_col, steam_col]].copy()
-
-    donut_df[process_temp_col] = pd.to_numeric(donut_df[process_temp_col], errors="coerce")
-    donut_df[elec_col] = pd.to_numeric(donut_df[elec_col], errors="coerce").fillna(0)
-    donut_df[fuel_col] = pd.to_numeric(donut_df[fuel_col], errors="coerce").fillna(0)
-    donut_df[steam_col] = pd.to_numeric(donut_df[steam_col], errors="coerce").fillna(0)
-
-    donut_df["Total SEC"] = (
-        donut_df[elec_col] + donut_df[fuel_col] + donut_df[steam_col]
-    )
-
-    donut_df["Temperature Band"] = pd.cut(
-        donut_df[process_temp_col],
-        bins=[-float("inf"), 100, 200, 400, float("inf")],
-        labels=["<100°C", "100-200°C", "200-400°C", ">400°C"],
-        right=False
-    )
-
-    agg_df = (
-        donut_df.dropna(subset=["Temperature Band"])
-        .groupby("Temperature Band", as_index=False)["Total SEC"]
-        .sum()
-    )
-
-    agg_df = agg_df[agg_df["Total SEC"] > 0].copy()
-
-    if agg_df.empty:
-        fig = px.pie(
-            pd.DataFrame({"Temperature Band": ["No data"], "Total SEC": [1]}),
-            names="Temperature Band",
-            values="Total SEC",
-            hole=0.62
-        )
-        fig.update_traces(textinfo="label", hovertemplate="<b>No valid temperature data</b><extra></extra>")
-        fig.update_layout(
-            height=360,
-            margin=dict(t=20, l=20, r=20, b=20),
-            paper_bgcolor=PAPER_BG,
-            plot_bgcolor=PLOT_BG,
-            showlegend=False,
-            font=dict(
-                family="Arial, sans-serif",
-                color=TEXT_COLOR,
-                size=13
-            ),
-            annotations=[
-                dict(
-                    text="<b>SEC by Temp (GJ/t)</b><br>N/A",
-                    x=0.5,
-                    y=0.5,
-                    showarrow=False,
-                    font=dict(size=16, color=TEXT_COLOR)
-                )
-            ]
-        )
-        return fig
+def build_temp_sec_donut(fact_sheet: dict):
+    donut_df = fact_sheet["Temperature SEC Breakdown"].copy()
+    donut_df = donut_df[donut_df["Value"] > 0].copy()
 
     fig = px.pie(
-        agg_df,
-        names="Temperature Band",
-        values="Total SEC",
+        donut_df,
+        names="Temperature Range",
+        values="Value",
         hole=0.62,
-        color="Temperature Band",
+        color="Temperature Range",
         color_discrete_map=TEMP_COLOR_MAP
     )
 
-    total_sec = agg_df["Total SEC"].sum()
+    total_sec = donut_df["Value"].sum()
 
     fig.update_traces(
         textposition="outside",
         texttemplate="%{label}<br>%{percent}",
         hovertemplate=(
             "<b>%{label}</b><br>"
-            "Value: %{value:.3f}<br>"
+            "Value: %{value:.3f} GJ/t<br>"
             "Share: %{percent}<extra></extra>"
         ),
         marker=dict(line=dict(color="#FFFFFF", width=2))
@@ -335,7 +276,7 @@ def build_temp_donut(selected_df: pd.DataFrame):
         ),
         annotations=[
             dict(
-                text=f"<b>SEC by Temp (GJ/t)</b><br>{total_sec:.2f}",
+                text=f"<b>Total SEC (GJ/t)</b><br>{total_sec:.2f}",
                 x=0.5,
                 y=0.5,
                 showarrow=False,
@@ -376,13 +317,16 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     if selected_df.empty:
         return None
 
-    for col in [
+    numeric_cols = [
         production_col,
         annual_energy_col,
         elec_col,
         fuel_col,
-        steam_col
-    ]:
+        steam_col,
+        process_temp_col
+    ]
+
+    for col in numeric_cols:
         selected_df[col] = pd.to_numeric(selected_df[col], errors="coerce")
 
     naics_series = (
@@ -407,6 +351,42 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
     sec_electricity = selected_df[elec_col].fillna(0).sum()
     sec_fuels = selected_df[fuel_col].fillna(0).sum()
     sec_steam = selected_df[steam_col].fillna(0).sum()
+
+    temp_sec_df = selected_df[
+        [process_temp_col, elec_col, fuel_col, steam_col]
+    ].copy()
+
+    temp_sec_df["Row SEC Total"] = (
+        temp_sec_df[elec_col].fillna(0)
+        + temp_sec_df[fuel_col].fillna(0)
+        + temp_sec_df[steam_col].fillna(0)
+    )
+
+    temp_sec_df = temp_sec_df.dropna(subset=[process_temp_col]).copy()
+
+    temp_sec_df["Temperature Range"] = pd.cut(
+        temp_sec_df[process_temp_col],
+        bins=[float("-inf"), 100, 200, 400, float("inf")],
+        labels=["<100 C", "100-200 C", "200-400 C", ">400 C"],
+        right=False
+    )
+
+    temp_breakdown = (
+        temp_sec_df.groupby("Temperature Range", observed=False, as_index=False)["Row SEC Total"]
+        .sum()
+        .rename(columns={"Row SEC Total": "Value"})
+    )
+
+    all_ranges = pd.DataFrame({
+        "Temperature Range": ["<100 C", "100-200 C", "200-400 C", ">400 C"]
+    })
+
+    temp_breakdown = all_ranges.merge(
+        temp_breakdown,
+        on="Temperature Range",
+        how="left"
+    )
+    temp_breakdown["Value"] = temp_breakdown["Value"].fillna(0)
 
     detail_df = selected_df[
         [
@@ -447,7 +427,7 @@ def build_fact_sheet(df: pd.DataFrame, selected_process: str):
         "SEC Steam": sec_steam,
         "Rows": selected_df.shape[0],
         "Details": detail_df,
-        "Selected DF": selected_df
+        "Temperature SEC Breakdown": temp_breakdown
     }
 
 
@@ -489,9 +469,10 @@ try:
 
             st.subheader("Specific Energy Consumption (SEC)")
 
-            d1, d2 = st.columns(2)
+            donut_col1, donut_col2 = st.columns(2)
 
-            with d1:
+            with donut_col1:
+                st.caption("By SEC source")
                 st.plotly_chart(
                     build_sec_donut(fact_sheet),
                     use_container_width=True,
@@ -499,9 +480,10 @@ try:
                     config={"displayModeBar": False}
                 )
 
-            with d2:
+            with donut_col2:
+                st.caption("By process temperature range")
                 st.plotly_chart(
-                    build_temp_donut(fact_sheet["Selected DF"]),
+                    build_temp_sec_donut(fact_sheet),
                     use_container_width=True,
                     theme=None,
                     config={"displayModeBar": False}
