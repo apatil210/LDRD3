@@ -7,12 +7,6 @@ st.set_page_config(
     layout="wide",
 )
 
-
-
-st.markdown(
-    '<div class="page-title">US Manufacturing Energy 2022 Classification: Unit Operations</div>',
-    unsafe_allow_html=True,
-)
 SHEET_NAME = "Process-level data"
 LOCAL_FILE = "DatasetJune24Part2.xlsx"
 
@@ -27,8 +21,10 @@ EXPECTED = {
     "annual_steam": "Annual fuels or electricity for steam or steam from CHP demand in 2022",
 }
 
+
 def norm(x):
     return " ".join(str(x).replace("\n", " ").strip().split()).lower()
+
 
 @st.cache_data
 def load_data():
@@ -43,6 +39,7 @@ def load_data():
     df = df.dropna(axis=1, how="all").reset_index(drop=True)
     return df
 
+
 def resolve_columns(df):
     resolved = {}
     missing = []
@@ -56,17 +53,18 @@ def resolve_columns(df):
 
     return resolved, missing
 
+
 def num(series):
     return pd.to_numeric(series, errors="coerce").fillna(0)
+
 
 def fmt_pj(x):
     return f"{x:,.2f}"
 
+
 def fmt_pct(x):
     return f"{x:.1f}%"
 
-df = load_data()
-cols, missing = resolve_columns(df)
 
 st.markdown(
     """
@@ -89,7 +87,7 @@ st.markdown(
 
     .block-container {
         max-width: 1800px;
-        padding-top: 2rem;
+        padding-top: 3.25rem;
         padding-bottom: 2rem;
         padding-left: 2.5rem;
         padding-right: 2.5rem;
@@ -101,15 +99,19 @@ st.markdown(
     }
 
     .page-title {
-        font-size: 3.1rem;
-        line-height: 1.05;
+        font-size: 2.45rem;
+        line-height: 1.16;
         font-weight: 800;
         color: #2f3042;
-        margin-bottom: 2rem;
+        margin: 0.35rem 0 1.75rem 0;
+        padding-top: 0.2rem;
+        overflow: visible;
+        word-break: break-word;
     }
 
     .section-title {
         font-size: 1.25rem;
+        line-height: 1.25;
         font-weight: 700;
         color: #2f3042;
         margin-bottom: 0.4rem;
@@ -119,20 +121,23 @@ st.markdown(
         font-size: 0.95rem;
         color: #818191;
         margin-bottom: 1rem;
+        line-height: 1.4;
     }
 
     .metric-row {
         display: flex;
         gap: 1rem;
         margin: 0.35rem 0 1.8rem 0;
+        flex-wrap: wrap;
     }
 
     .metric-card {
-        flex: 1;
+        flex: 1 1 220px;
         background: #f7f6fb;
         border: 1px solid #e3e1ea;
         border-radius: 14px;
         padding: 0.95rem 1rem;
+        min-width: 0;
     }
 
     .metric-label {
@@ -152,6 +157,7 @@ st.markdown(
         color: #4b4c5f;
         margin-bottom: 0.3rem;
         font-weight: 500;
+        line-height: 1.4;
     }
 
     div[data-baseweb="select"] > div {
@@ -189,11 +195,52 @@ st.markdown(
         color: #6f7082;
         margin-top: -0.25rem;
         margin-bottom: 1rem;
+        line-height: 1.4;
+    }
+
+    @media (max-width: 1100px) {
+        .page-title {
+            font-size: 2.1rem;
+            line-height: 1.18;
+            margin-bottom: 1.35rem;
+        }
+
+        .block-container {
+            padding-top: 2.5rem;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-title {
+            font-size: 1.8rem;
+            line-height: 1.2;
+            margin-bottom: 1.1rem;
+        }
+
+        .block-container {
+            padding-top: 2rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .metric-row {
+            gap: 0.75rem;
+        }
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
+
+st.markdown(
+    '<div class="page-title">US Manufacturing Energy 2022 Classification: Unit Operations</div>',
+    unsafe_allow_html=True,
+)
+
+df = load_data()
+cols, missing = resolve_columns(df)
 
 if missing:
     st.error("Missing required columns: " + ", ".join(missing))
@@ -210,7 +257,11 @@ annual_fuels_col = cols["annual_fuels"]
 annual_steam_col = cols["annual_steam"]
 
 naics_options = sorted(df[naics_l1_col].dropna().astype(str).drop_duplicates().tolist())
-selected_naics = st.selectbox("Select a NAICS Level 1 sector to generate a fact sheet", naics_options, index=0)
+selected_naics = st.selectbox(
+    "Select a NAICS Level 1 sector to generate a fact sheet",
+    naics_options,
+    index=0,
+)
 
 df_filtered = df[df[naics_l1_col].astype(str) == str(selected_naics)].copy()
 
@@ -258,8 +309,6 @@ process_df = (
 process_df = process_df[process_df["Annual Energy"] > 0].copy()
 process_df = process_df.sort_values("Annual Energy", ascending=False)
 
-
-
 st.markdown(
     f"""
     <div class="metric-row">
@@ -287,7 +336,10 @@ st.markdown(
 left_col, right_col = st.columns([1.45, 1.0], gap="large")
 
 with left_col:
-    st.markdown('<div class="section-title">Percent Annual Energy by Unit Operation Classification</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-title">Percent Annual Energy by Unit Operation Classification</div>',
+        unsafe_allow_html=True,
+    )
     st.markdown(
         f'<div class="coverage-note">Selected sector: {selected_naics} · Total sector coverage: {coverage_text}</div>',
         unsafe_allow_html=True,
@@ -336,7 +388,10 @@ with left_col:
         st.info("No NAICS Level 2 annual energy data is available for this selection.")
 
 with right_col:
-    st.markdown('<div class="selector-label">Select a unit operation (Level 2 classification) to generate a fact sheet</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="selector-label">Select a unit operation (Level 2 classification) to generate a fact sheet</div>',
+        unsafe_allow_html=True,
+    )
 
     unit_options = bar_df["NAICS Level 2"].astype(str).tolist() if not bar_df.empty else []
     selected_unit = st.selectbox(
@@ -345,8 +400,14 @@ with right_col:
         label_visibility="collapsed",
     )
 
-    st.markdown('<div class="section-title" style="font-size: 1.05rem; margin-top: 1.2rem;">Total Annual Energy Breakdown</div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-subtitle">Categorization by Energy Source</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-title" style="font-size: 1.05rem; margin-top: 1.2rem;">Total Annual Energy Breakdown</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="section-subtitle">Categorization by Energy Source</div>',
+        unsafe_allow_html=True,
+    )
 
     if not breakdown_df.empty:
         fig_donut = px.pie(
@@ -388,7 +449,10 @@ with right_col:
     else:
         st.info("No annual energy breakdown is available for this selection.")
 
-    st.markdown('<div class="section-subtitle" style="margin-top: 1rem;">Categorization by Industrial Process</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-subtitle" style="margin-top: 1rem;">Categorization by Industrial Process</div>',
+        unsafe_allow_html=True,
+    )
 
     if not process_df.empty:
         top_process = process_df.head(8).copy()
