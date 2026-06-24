@@ -6,6 +6,9 @@ st.set_page_config(
     page_title="US Manufacturing Energy 2022 Classification: Unit Operations",
     layout="wide",
 )
+
+
+
 st.markdown(
     '<div class="page-title">US Manufacturing Energy 2022 Classification: Unit Operations</div>',
     unsafe_allow_html=True,
