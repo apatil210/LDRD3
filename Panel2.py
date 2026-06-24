@@ -418,7 +418,7 @@ def build_annual_energy_donut(fact_sheet: dict):
 # ----------------------------
 # App UI
 # ----------------------------
-st.title("US Manufacturing Energy Classification: Unit Operations")
+st.title("US Manufacturing Energy 2022 Classification: Unit Operations")
 
 try:
     df = load_excel_data(DATA_URL)
