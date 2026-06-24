@@ -64,43 +64,100 @@ st.markdown(
     <style>
     .stApp {
         font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background-color: #f8fafc;
+        background-color: #ffffff;
+        color: #111827;
     }
+
+    [data-testid="stAppViewContainer"],
+    [data-testid="stHeader"],
+    [data-testid="stToolbar"],
+    .main,
     .block-container {
-        padding-top: 1.3rem;
+        background: #ffffff !important;
+    }
+
+    .block-container {
+        padding-top: 1.25rem;
         padding-bottom: 2rem;
         max-width: 1250px;
     }
+
     h1, h2, h3 {
-        color: #1e293b !important;
+        color: #111827 !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.01em;
     }
+
+    p, label, div {
+        color: #111827;
+    }
+
     .card {
         background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 16px;
+        border: 1px solid #d1d5db;
+        border-radius: 0;
         padding: 18px 20px;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        box-shadow: none;
         margin-bottom: 1rem;
     }
+
     .metric-label {
         font-size: 0.92rem;
-        color: #64748b;
-        margin-bottom: 0.15rem;
+        color: #4b5563;
+        margin-bottom: 0.2rem;
     }
+
     .metric-value {
         font-size: 1.35rem;
         font-weight: 700;
-        color: #0f172a;
+        color: #111827;
     }
+
     .coverage-label {
         margin-top: 0.35rem;
         margin-bottom: 1rem;
+        padding: 10px 12px;
         font-size: 0.98rem;
-        color: #0f172a;
+        color: #111827;
         font-weight: 600;
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 0;
     }
+
     .dataframe tbody tr th {
         display: none;
+    }
+
+    div[data-testid="stPlotlyChart"] {
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 0;
+        padding: 4px;
+        box-shadow: none;
+    }
+
+    div[data-baseweb="select"] > div {
+        background: #ffffff !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        min-height: 42px;
+    }
+
+    div[data-baseweb="select"] input {
+        color: #111827 !important;
+    }
+
+    .stSelectbox label {
+        font-weight: 600;
+        color: #111827 !important;
+    }
+
+    hr {
+        border: none;
+        border-top: 1px solid #d1d5db;
+        margin: 1rem 0;
     }
     </style>
     """,
@@ -108,7 +165,7 @@ st.markdown(
 )
 
 st.markdown("<h1>US Manufacturing Energy 2022 Classification: NAICS</h1>", unsafe_allow_html=True)
-st.write("Select a NAICS Level 1 (3-digit code) sector to generate an energy fact sheet.")
+st.write("Select a NAICS Level 1 sector to generate an energy fact sheet.")
 
 if missing:
     st.error("Missing required columns: " + ", ".join(missing))
@@ -151,7 +208,12 @@ for col, label, value in [
 ]:
     with col:
         st.markdown(
-            f'<div class="card"><div class="metric-label">{label}</div><div class="metric-value">{fmt_pj(value)}</div></div>',
+            f'''
+            <div class="card">
+                <div class="metric-label">{label}</div>
+                <div class="metric-value">{fmt_pj(value)}</div>
+            </div>
+            ''',
             unsafe_allow_html=True,
         )
 
@@ -186,7 +248,6 @@ process_df = process_df[process_df["Annual Energy"] > 0].copy()
 left_col, right_col = st.columns([1.0, 1.2])
 
 with left_col:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader(f"Annual Energy Breakdown for {selected_naics}")
 
     if not breakdown_df.empty:
@@ -198,19 +259,27 @@ with left_col:
             color="Type",
             color_discrete_map={
                 "Annual Fuels": "#f7901d",
-                "Annual Steam": "#3b82f6",
+                "Annual Steam": "#2563eb",
                 "Annual Electricity": "#0f766e",
             },
         )
-        fig_donut.update_traces(textinfo="percent+label", textposition="outside")
-        fig_donut.update_layout(showlegend=False, margin=dict(t=20, b=10, l=10, r=10))
+        fig_donut.update_traces(
+            textinfo="percent+label",
+            textposition="outside",
+            marker=dict(line=dict(color="#ffffff", width=1)),
+        )
+        fig_donut.update_layout(
+            showlegend=False,
+            margin=dict(t=20, b=10, l=10, r=10),
+            paper_bgcolor="#ffffff",
+            plot_bgcolor="#ffffff",
+            font=dict(color="#111827"),
+        )
         st.plotly_chart(fig_donut, use_container_width=True)
     else:
         st.info("No annual energy breakdown is available for this selection.")
-    st.markdown("</div>", unsafe_allow_html=True)
 
 with right_col:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("Annual Energy Classification by NAICS Level 2 code")
 
     if not bar_df.empty:
@@ -232,13 +301,24 @@ with right_col:
             xaxis_title="Annual Energy Demand in 2022 (PJ)",
             yaxis_title="",
             margin=dict(t=20, b=20, l=80, r=70),
+            paper_bgcolor="#ffffff",
+            plot_bgcolor="#ffffff",
+            font=dict(color="#111827"),
+        )
+        fig_bar.update_xaxes(
+            showgrid=True,
+            gridcolor="#e5e7eb",
+            zeroline=False,
+            linecolor="#d1d5db",
+        )
+        fig_bar.update_yaxes(
+            showgrid=False,
+            linecolor="#d1d5db",
         )
         st.plotly_chart(fig_bar, use_container_width=True)
     else:
         st.info("No NAICS Level 2 annual energy data is available for this selection.")
-    st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown('<div class="card">', unsafe_allow_html=True)
 st.subheader(f"Annual Energy Classification by Industrial Process: {selected_naics}")
 
 if not process_df.empty:
@@ -251,7 +331,7 @@ if not process_df.empty:
         text="Annual Energy",
     )
     fig_process.update_traces(
-        marker_color="#8b5cf6",
+        marker_color="#7c3aed",
         texttemplate="%{text:.2f}",
         textposition="outside",
         cliponaxis=False,
@@ -260,9 +340,20 @@ if not process_df.empty:
         xaxis_title="Annual Energy Demand in 2022 (PJ)",
         yaxis_title="",
         margin=dict(t=20, b=20, l=100, r=70),
+        paper_bgcolor="#ffffff",
+        plot_bgcolor="#ffffff",
+        font=dict(color="#111827"),
+    )
+    fig_process.update_xaxes(
+        showgrid=True,
+        gridcolor="#e5e7eb",
+        zeroline=False,
+        linecolor="#d1d5db",
+    )
+    fig_process.update_yaxes(
+        showgrid=False,
+        linecolor="#d1d5db",
     )
     st.plotly_chart(fig_process, use_container_width=True)
 else:
     st.info("No industrial process annual energy data is available for this selection.")
-
-st.markdown("</div>", unsafe_allow_html=True)
