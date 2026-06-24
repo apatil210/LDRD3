@@ -133,7 +133,7 @@ st.markdown(
 
     .metric-card {
         flex: 1 1 220px;
-        background: #f7f6fb;
+        background: white;
         border: 1px solid #e3e1ea;
         border-radius: 14px;
         padding: 0.95rem 1rem;
@@ -161,7 +161,7 @@ st.markdown(
     }
 
     div[data-baseweb="select"] > div {
-        background: #efedf3 !important;
+        background: white !important;
         border: 1px solid #efedf3 !important;
         border-radius: 10px !important;
         min-height: 44px;
