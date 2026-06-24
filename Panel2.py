@@ -180,7 +180,7 @@ def load_excel_data(url: str) -> pd.DataFrame:
         columns=[str(h) if h is not None else f"Unnamed_{i+1}" for i, h in enumerate(headers)]
     )
 
-    # Force exact Excel columns into stable dataframe columns
+    # Exact Excel-sourced columns
     df[COL_PROCESS_TEMP_WEB] = pd.Series([row[EXCEL_COL_K - 1] for row in rows])
     df["_Description_Excel_E"] = pd.Series([row[EXCEL_COL_E - 1] for row in rows])
     df["_Annual_Energy_AU"] = pd.Series([row[EXCEL_COL_AU - 1] for row in rows])
@@ -299,7 +299,6 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         "Annual Energy AU": selected_df[annual_energy_col],
     }).dropna(subset=["Temperature Raw", "Annual Energy AU"])
 
-    # Pie/donut values must be non-negative; use magnitude from AU
     temp_energy_df["Annual Energy Magnitude"] = temp_energy_df["Annual Energy AU"].abs()
     temp_energy_df = temp_energy_df[temp_energy_df["Annual Energy Magnitude"] > 0].copy()
 
@@ -360,8 +359,6 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         residence_time_col: "Residence time (sec)",
     })
 
-    debug_temp_df = temp_energy_df.copy()
-
     return {
         "Annual Production": annual_production,
         "Annual Energy": annual_energy,
@@ -373,7 +370,6 @@ def build_fact_sheet(df: pd.DataFrame, selected_l2: str):
         "Details": detail_df,
         "Temperature Source Column": process_temp_web_col,
         "Annual Energy Source Column": "AU",
-        "Debug Temp Energy": debug_temp_df,
     }
 
 # ----------------------------
@@ -564,9 +560,6 @@ try:
                     f"{fact_sheet['Annual Energy Source Column']} with valid "
                     f"'{fact_sheet['Temperature Source Column']}' temperatures are available for the selected category."
                 )
-
-            with st.expander("Debug temperature inputs", expanded=False):
-                st.dataframe(fact_sheet["Debug Temp Energy"], use_container_width=True)
 
             st.dataframe(
                 fact_sheet["Details"],
