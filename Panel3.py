@@ -71,18 +71,18 @@ st.markdown(
     <style>
     .stApp {
         font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: #f3f3f6;
+        background: white;
         color: #2f3042;
     }
 
     [data-testid="stAppViewContainer"],
     .main,
     .block-container {
-        background: #f3f3f6 !important;
+        background: white !important;
     }
 
     [data-testid="stHeader"] {
-        background: #f3f3f6 !important;
+        background: white !important;
     }
 
     .block-container {
