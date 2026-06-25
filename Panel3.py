@@ -305,7 +305,7 @@ selected_naics = st.selectbox(
 
 df_filtered = df[df[naics_l1_col].astype(str) == str(selected_naics)].copy()
 
-coverage = num(df_filtered[percent_energy_col]).sum()
+coverage = num(df_filtered[percent_energy_col]).sum() * 100
 total_energy = num(df_filtered[total_energy_col]).sum()
 total_electricity = num(df_filtered[electricity_col]).sum()
 total_fuels = num(df_filtered[fuels_col]).sum()
