@@ -184,14 +184,15 @@ with col1:
         fig = px.pie(
             naics_donut_df, names="NAICS Level 2", values="Annual Energy",
             hole=0.62, color="NAICS Level 2", color_discrete_sequence=NAICS_COLORS,
-            title="A) NAICS Subsectors Within",
+            title="NAICS 6--digit Subsectors Within",
         )
         st.plotly_chart(fig, use_container_width=True)
 
     if not process_df.empty:
         fig = px.pie(
             process_df, names="Industrial process", values="Annual Energy",
-            hole=0.62, color="Industrial process", color_discrete_sequence=PROCESS_COLORS
+            hole=0.62, color="Industrial process", color_discrete_sequence=PROCESS_COLORS,
+            title="Industry Sectors Within",
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -199,13 +200,15 @@ with col2:
     if not breakdown_df.empty:
         fig = px.pie(
             breakdown_df, names="Type", values="Value",
-            hole=0.62, color="Type", color_discrete_map=ENERGY_SOURCE_COLORS
+            hole=0.62, color="Type", color_discrete_map=ENERGY_SOURCE_COLORS,
+            title="Distribution by Energy Source",
         )
         st.plotly_chart(fig, use_container_width=True)
 
     if not temp_donut_df.empty:
         fig = px.pie(
             temp_donut_df, names="Temperature Range", values="Annual Energy",
-            hole=0.62, color="Temperature Range", color_discrete_map=TEMP_COLORS
+            hole=0.62, color="Temperature Range", color_discrete_map=TEMP_COLORS,
+            title="Distribution by Process Temperature",
         )
         st.plotly_chart(fig, use_container_width=True)
