@@ -208,7 +208,7 @@ with col1:
             hole=0.62,
             color="NAICS Level 2",
             color_discrete_sequence=NAICS_COLORS,
-            title="NAICS 6-digit Subsectors Within",
+            title="NAICS Subsectors Within",
         )
         fig = style_donut(fig)
         st.plotly_chart(fig, use_container_width=True)
