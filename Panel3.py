@@ -29,6 +29,49 @@ OPTIONAL = {
     "percent_coverage": "Percent Coverage of NAICS (3-digit) Sector"
 }
 
+NAICS_COLORS = [
+    "#0F4C5C",
+    "#7A1F1F",
+    "#5C4D7D",
+    "#8A5A00",
+    "#006D5B",
+    "#8C2F39",
+    "#355C7D",
+    "#6B3E26",
+    "#1D3557",
+    "#7F5539",
+    "#6A040F",
+    "#3A5A40",
+]
+
+PROCESS_COLORS = [
+    "#7A1F5C",
+    "#A23B72",
+    "#5B2A86",
+    "#8C1C13",
+    "#6C584C",
+    "#2D6A4F",
+    "#8D5524",
+    "#3D405B",
+    "#7B2CBF",
+    "#9C6644",
+    "#6F1D1B",
+    "#386641",
+]
+
+ENERGY_SOURCE_COLORS = {
+    "Annual Fuels": "#C05A00",
+    "Annual Steam": "#355C9A",
+    "Annual Electricity": "#1F8A4C",
+}
+
+TEMP_COLORS = {
+    "<100 °C": "#2A9D8F",
+    "100-200 °C": "#B9770E",
+    "200-400 °C": "#C0392B",
+    ">400 °C": "#5B2C6F",
+}
+
 
 def norm(x):
     return " ".join(str(x).replace("\n", " ").strip().split()).lower()
@@ -78,10 +121,176 @@ def fmt_pj(x):
     return f"{x:,.2f}"
 
 
-df = load_data()
+def build_metric_card(label, value):
+    return f"""
+        <div class=\"metric-card\">
+            <div class=\"metric-label\">{label}</div>
+            <div class=\"metric-value\">{value}</div>
+        </div>
+    """
 
+
+df = load_data()
 cols, missing = resolve_columns(df, EXPECTED)
 opt_cols = resolve_optional_columns(df, OPTIONAL)
+
+st.markdown(
+    """
+    <style>
+    .stApp {
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #ffffff;
+        color: #2f3042;
+    }
+
+    [data-testid="stAppViewContainer"],
+    .main,
+    .block-container {
+        background: #ffffff !important;
+    }
+
+    [data-testid="stHeader"] {
+        background: #ffffff !important;
+    }
+
+    .block-container {
+        max-width: 1800px;
+        padding-top: 3.25rem;
+        padding-bottom: 2rem;
+        padding-left: 2.5rem;
+        padding-right: 2.5rem;
+    }
+
+    h1, h2, h3 {
+        color: #2f3042 !important;
+        letter-spacing: -0.03em;
+    }
+
+    .page-title {
+        font-size: 2.45rem;
+        line-height: 1.16;
+        font-weight: 800;
+        color: #2f3042;
+        margin: 0.35rem 0 1.75rem 0;
+        padding-top: 0.2rem;
+        overflow: visible;
+        word-break: break-word;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        line-height: 1.25;
+        font-weight: 700;
+        color: #2f3042;
+        margin-bottom: 0.4rem;
+    }
+
+    .section-subtitle {
+        font-size: 0.95rem;
+        color: #818191;
+        margin-bottom: 1rem;
+        line-height: 1.4;
+    }
+
+    .metric-row {
+        display: flex;
+        gap: 1rem;
+        margin: 0.35rem 0 1.8rem 0;
+        flex-wrap: wrap;
+    }
+
+    .metric-card {
+        flex: 1 1 220px;
+        background: #ffffff;
+        border: 1px solid #e3e1ea;
+        border-radius: 14px;
+        padding: 0.95rem 1rem;
+        min-width: 0;
+    }
+
+    .metric-label {
+        font-size: 0.86rem;
+        color: #707184;
+        margin-bottom: 0.35rem;
+    }
+
+    .metric-value {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #2f3042;
+    }
+
+    div[data-baseweb="select"] > div {
+        background: #ffffff !important;
+        border: 1px solid #dcdde3 !important;
+        border-radius: 10px !important;
+        min-height: 44px;
+        box-shadow: none !important;
+    }
+
+    div[data-baseweb="select"] input {
+        color: #2f3042 !important;
+    }
+
+    .stSelectbox label {
+        color: #4b4c5f !important;
+        font-weight: 500 !important;
+    }
+
+    div[data-testid="stPlotlyChart"] {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+
+    .coverage-note {
+        font-size: 0.95rem;
+        color: #6f7082;
+        margin-top: -0.25rem;
+        margin-bottom: 1rem;
+        line-height: 1.4;
+    }
+
+    @media (max-width: 1100px) {
+        .page-title {
+            font-size: 2.1rem;
+            line-height: 1.18;
+            margin-bottom: 1.35rem;
+        }
+
+        .block-container {
+            padding-top: 2.5rem;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-title {
+            font-size: 1.8rem;
+            line-height: 1.2;
+            margin-bottom: 1.1rem;
+        }
+
+        .block-container {
+            padding-top: 2rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .metric-row {
+            gap: 0.75rem;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    '<div class="page-title">US Manufacturing Energy 2022 Classification: NAICS Classification</div>',
+    unsafe_allow_html=True,
+)
 
 if missing:
     st.error("Missing required columns: " + ", ".join(missing))
@@ -139,6 +348,10 @@ naics_donut_df = naics_donut_df[naics_donut_df["Annual Energy"] > 0].copy()
 naics_donut_df = naics_donut_df.sort_values("Annual Energy", ascending=False)
 
 naics_total = naics_donut_df["Annual Energy"].sum()
+if naics_total > 0:
+    naics_donut_df["Percent"] = (naics_donut_df["Annual Energy"] / naics_total) * 100
+else:
+    naics_donut_df["Percent"] = 0.0
 
 process_df = df_filtered[[industrial_process_col, total_energy_col]].copy()
 process_df[total_energy_col] = pd.to_numeric(process_df[total_energy_col], errors="coerce")
@@ -171,3 +384,193 @@ temp_donut_df = (
     .sum()
 )
 temp_donut_df = temp_donut_df[temp_donut_df["Annual Energy"] > 0].copy()
+
+st.markdown(
+    f"""
+    <div class="metric-row">
+        {build_metric_card("Total annual energy", f"{fmt_pj(total_energy)} PJ")}
+        {build_metric_card("Annual electricity", f"{fmt_pj(total_electricity)} PJ")}
+        {build_metric_card("Annual fuels", f"{fmt_pj(total_fuels)} PJ")}
+        {build_metric_card("Annual steam", f"{fmt_pj(total_steam)} PJ")}
+        {build_metric_card("Percent coverage", percent_coverage_text)}
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+if percent_coverage_col is None:
+    st.markdown(
+        '<div class="coverage-note">Percent Coverage of NAICS (3-digit) Sector is not present in this workbook version, so coverage is shown as Not available.</div>',
+        unsafe_allow_html=True,
+    )
+
+left_col, right_col = st.columns([1.2, 1.0], gap="large")
+
+with left_col:
+    st.markdown(
+        '<div class="section-title">Total Annual Energy Breakdown: NAICS 6-digit Subsectors</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not naics_donut_df.empty:
+        fig_naics = px.pie(
+            naics_donut_df,
+            names="NAICS Level 2",
+            values="Annual Energy",
+            hole=0.62,
+            color="NAICS Level 2",
+            color_discrete_sequence=NAICS_COLORS,
+        )
+        fig_naics.update_traces(
+            textinfo="percent+label",
+            textposition="outside",
+            sort=False,
+            marker=dict(line=dict(color="#ffffff", width=2)),
+            hovertemplate="<b>%{label}</b><br>%{percent} of selected NAICS<br>%{value:.2f} PJ<extra></extra>",
+        )
+        fig_naics.update_layout(
+            height=520,
+            paper_bgcolor="#ffffff",
+            plot_bgcolor="#ffffff",
+            margin=dict(t=10, b=20, l=10, r=10),
+            showlegend=False,
+            font=dict(color="#2f3042", family="Inter, sans-serif", size=13),
+        )
+        fig_naics.add_annotation(
+            x=0.5,
+            y=0.5,
+            text=f"<b>Total (PJ/yr)</b><br>{fmt_pj(naics_total)}",
+            showarrow=False,
+            font=dict(size=16, color="#2f3042"),
+            xanchor="center",
+            yanchor="middle",
+        )
+        st.plotly_chart(fig_naics, use_container_width=True)
+    else:
+        st.info("No NAICS Level 2 annual energy data is available for this selection.")
+
+    st.markdown(
+        '<div class="section-title" style="font-size: 1.05rem; margin-top: 1.4rem;">Total Annual Energy Breakdown: Industrial Process</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not process_df.empty:
+        fig_process = px.pie(
+            process_df,
+            names="Industrial process",
+            values="Annual Energy",
+            hole=0.62,
+            color="Industrial process",
+            color_discrete_sequence=PROCESS_COLORS,
+        )
+        fig_process.update_traces(
+            textinfo="percent+label",
+            textposition="outside",
+            sort=False,
+            marker=dict(line=dict(color="#ffffff", width=2)),
+            hovertemplate="<b>%{label}</b><br>%{value:.2f} PJ<extra></extra>",
+        )
+        fig_process.update_layout(
+            height=420,
+            paper_bgcolor="#ffffff",
+            plot_bgcolor="#ffffff",
+            margin=dict(t=0, b=10, l=10, r=10),
+            showlegend=False,
+            font=dict(color="#2f3042", family="Inter, sans-serif", size=13),
+        )
+        fig_process.add_annotation(
+            x=0.5,
+            y=0.5,
+            text=f"<b>Total (PJ/yr)</b><br>{fmt_pj(process_df['Annual Energy'].sum())}",
+            showarrow=False,
+            font=dict(size=15, color="#2f3042"),
+            xanchor="center",
+            yanchor="middle",
+        )
+        st.plotly_chart(fig_process, use_container_width=True)
+    else:
+        st.info("No industrial process annual energy data is available for this selection.")
+
+with right_col:
+    st.markdown(
+        '<div class="section-title" style="font-size: 1.05rem; margin-top: 1.2rem;">Total Annual Energy Breakdown: Energy Source</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not breakdown_df.empty:
+        fig_donut = px.pie(
+            breakdown_df,
+            names="Type",
+            values="Value",
+            hole=0.62,
+            color="Type",
+            color_discrete_map=ENERGY_SOURCE_COLORS,
+        )
+        fig_donut.update_traces(
+            textinfo="percent+label",
+            textposition="outside",
+            sort=False,
+            marker=dict(line=dict(color="#ffffff", width=2)),
+        )
+        fig_donut.update_layout(
+            height=420,
+            margin=dict(t=10, b=10, l=10, r=10),
+            paper_bgcolor="#ffffff",
+            plot_bgcolor="#ffffff",
+            showlegend=False,
+            font=dict(color="#2f3042", family="Inter, sans-serif", size=13),
+        )
+        fig_donut.add_annotation(
+            x=0.5,
+            y=0.5,
+            text=f"<b>Total (PJ/yr)</b><br>{fmt_pj(total_energy)}",
+            showarrow=False,
+            font=dict(size=16, color="#2f3042"),
+            xanchor="center",
+            yanchor="middle",
+        )
+        st.plotly_chart(fig_donut, use_container_width=True)
+    else:
+        st.info("No annual energy breakdown is available for this selection.")
+
+    st.markdown(
+        '<div class="section-title" style="font-size: 1.05rem; margin-top: 1.2rem;">Total Annual Energy Breakdown: Temperature</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not temp_donut_df.empty:
+        fig_temp = px.pie(
+            temp_donut_df,
+            names="Temperature Range",
+            values="Annual Energy",
+            hole=0.62,
+            color="Temperature Range",
+            color_discrete_map=TEMP_COLORS,
+        )
+        fig_temp.update_traces(
+            textinfo="percent+label",
+            textposition="outside",
+            sort=False,
+            marker=dict(line=dict(color="#ffffff", width=2)),
+            hovertemplate="<b>%{label}</b><br>%{value:.2f} PJ<extra></extra>",
+        )
+        fig_temp.update_layout(
+            height=420,
+            margin=dict(t=10, b=10, l=10, r=10),
+            paper_bgcolor="#ffffff",
+            plot_bgcolor="#ffffff",
+            showlegend=False,
+            font=dict(color="#2f3042", family="Inter, sans-serif", size=13),
+        )
+        fig_temp.add_annotation(
+            x=0.5,
+            y=0.5,
+            text=f"<b>Total (PJ/yr)</b><br>{fmt_pj(temp_donut_df['Annual Energy'].sum())}",
+            showarrow=False,
+            font=dict(size=16, color="#2f3042"),
+            xanchor="center",
+            yanchor="middle",
+        )
+        st.plotly_chart(fig_temp, use_container_width=True)
+    else:
+        st.info("No annual energy by temperature data is available for this selection.")
