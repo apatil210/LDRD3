@@ -22,7 +22,7 @@ contributors = [
     {
         "name": "Prakash Rao",
         "title": "Head · Building & Industrial Applications Department",
-        "email": "<prao@lbl.gov",
+        "email": "prao@lbl.gov",
         "photo": "https://raw.githubusercontent.com/apatil210/LDRD3/main/Prakash.jpg",
     },
     {
