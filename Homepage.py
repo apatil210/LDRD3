@@ -9,8 +9,7 @@ st.set_page_config(
 contributors = [
     {
         "name": "Akash Patil",
-        "title": "Postdoctoral Researcher, Energy Analysis Division
-        apatil2@lbl.gov",
+        "title": "Postdoctoral Researcher, Energy Analysis Division",
         "photo": "https://raw.githubusercontent.com/apatil210/LDRD2/main/Akashpic2.jpg",
     },
     {
