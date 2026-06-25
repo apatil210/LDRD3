@@ -39,7 +39,9 @@ TEMP_COLORS = {
 }
 
 def norm(x):
-    return " ".join(str(x).replace("\n", " ").replace("(", "").replace(")", "").strip().split()).lower()
+    return " ".join(
+        str(x).replace("\n", " ").replace("(", "").replace(")", "").strip().split()
+    ).lower()
 
 def pick_col(df, target):
     matches = [c for c in df.columns if norm(c) == norm(target)]
@@ -50,6 +52,24 @@ def num(series):
 
 def fmt_pj(x):
     return f"{x:,.2f}"
+
+def style_donut(fig):
+    fig.update_traces(
+        domain=dict(x=[0.00, 0.72]),
+        textinfo="percent",
+        hovertemplate="%{label}<br>%{value:,.2f} PJ<br>%{percent}<extra></extra>",
+    )
+    fig.update_layout(
+        margin=dict(t=60, b=20, l=20, r=20),
+        legend=dict(
+            x=0.75,
+            y=0.5,
+            xanchor="left",
+            yanchor="middle",
+            font=dict(size=12),
+        ),
+    )
+    return fig
 
 @st.cache_data
 def load_data():
@@ -182,37 +202,53 @@ col1, col2 = st.columns(2)
 with col1:
     if not naics_donut_df.empty:
         fig = px.pie(
-            naics_donut_df, names="NAICS Level 2", values="Annual Energy",
-            hole=0.62, color="NAICS Level 2", color_discrete_sequence=NAICS_COLORS,
-            title="NAICS 6--digit Subsectors Within",
+            naics_donut_df,
+            names="NAICS Level 2",
+            values="Annual Energy",
+            hole=0.62,
+            color="NAICS Level 2",
+            color_discrete_sequence=NAICS_COLORS,
+            title="NAICS 6-digit Subsectors Within",
         )
-        
+        fig = style_donut(fig)
         st.plotly_chart(fig, use_container_width=True)
 
     if not process_df.empty:
         fig = px.pie(
-            process_df, names="Industrial process", values="Annual Energy",
-            hole=0.62, color="Industrial process", color_discrete_sequence=PROCESS_COLORS,
-            title="Industry Sectors Within",
+            process_df,
+            names="Industrial process",
+            values="Annual Energy",
+            hole=0.62,
+            color="Industrial process",
+            color_discrete_sequence=PROCESS_COLORS,
+            title="Industrial Processes Within",
         )
-        
+        fig = style_donut(fig)
         st.plotly_chart(fig, use_container_width=True)
 
 with col2:
     if not breakdown_df.empty:
         fig = px.pie(
-            breakdown_df, names="Type", values="Value",
-            hole=0.62, color="Type", color_discrete_map=ENERGY_SOURCE_COLORS,
+            breakdown_df,
+            names="Type",
+            values="Value",
+            hole=0.62,
+            color="Type",
+            color_discrete_map=ENERGY_SOURCE_COLORS,
             title="Distribution by Energy Source",
         )
-       
+        fig = style_donut(fig)
         st.plotly_chart(fig, use_container_width=True)
 
     if not temp_donut_df.empty:
         fig = px.pie(
-            temp_donut_df, names="Temperature Range", values="Annual Energy",
-            hole=0.62, color="Temperature Range", color_discrete_map=TEMP_COLORS,
+            temp_donut_df,
+            names="Temperature Range",
+            values="Annual Energy",
+            hole=0.62,
+            color="Temperature Range",
+            color_discrete_map=TEMP_COLORS,
             title="Distribution by Process Temperature",
         )
-     
+        fig = style_donut(fig)
         st.plotly_chart(fig, use_container_width=True)
