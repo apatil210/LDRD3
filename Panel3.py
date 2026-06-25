@@ -198,8 +198,8 @@ st.markdown(
     }
 
     div[data-baseweb="select"] > div {
-        background: #f3f3f8 !important;
-        border: 1px solid #ececf3 !important;
+        background: #ffffff !important;
+        border: 1px solid #dcdde3 !important;
         border-radius: 10px !important;
         min-height: 44px;
         box-shadow: none !important;
@@ -209,13 +209,9 @@ st.markdown(
         color: #2f3042 !important;
     }
 
-    div[data-baseweb="select"] svg {
-        color: #2f3042 !important;
-    }
-
     .stSelectbox label {
-        color: #2f3042 !important;
-        font-weight: 400 !important;
+        color: #4b4c5f !important;
+        font-weight: 500 !important;
     }
 
     div[data-testid="stPlotlyChart"] {
@@ -310,8 +306,6 @@ selected_naics = st.selectbox(
 df_filtered = df[df[naics_l1_col].astype(str) == str(selected_naics)].copy()
 
 coverage = num(df_filtered[percent_energy_col]).sum()
-coverage_text = f"{coverage:.2%}" if coverage > 0 else "N/A"
-
 total_energy = num(df_filtered[total_energy_col]).sum()
 total_electricity = num(df_filtered[electricity_col]).sum()
 total_fuels = num(df_filtered[fuels_col]).sum()
@@ -392,6 +386,10 @@ st.markdown(
         <div class="metric-card">
             <div class="metric-label">Annual steam</div>
             <div class="metric-value">{fmt_pj(total_steam)} PJ</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Percent coverage</div>
+            <div class="metric-value">{fmt_pct(coverage)}</div>
         </div>
     </div>
     """,
