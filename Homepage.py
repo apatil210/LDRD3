@@ -248,6 +248,16 @@ st.markdown(
         color: var(--muted);
     }
 
+    .resource-intro a {
+        color: var(--lbl-teal);
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .resource-intro a:hover {
+        text-decoration: underline;
+    }
+
     .nav-link {
         text-decoration: none;
         display: block;
@@ -352,6 +362,12 @@ st.markdown(
         min-height: 4.5rem;
     }
 
+    .person-email {
+        font: 500 0.88rem/1.5 'Libre Franklin', sans-serif;
+        color: var(--lbl-teal);
+        margin-top: 0.7rem;
+    }
+
     .funding-copy {
         font: 500 0.98rem/1.6 'Libre Franklin', sans-serif;
         color: var(--lbl-dark-gray);
@@ -426,16 +442,15 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
-
 st.markdown(
     """
     <section class="hero">
         <div class="hero-grid">
             <div class="hero-main">
                 <div class="kicker">Research platform</div>
-                <h1 class="hero-title">US Manufacturing Energy 2022 </h1>
-                
+                <h1 class="hero-title">US Manufacturing Energy 2022</h1>
+            </div>
+        </div>
     </section>
     """,
     unsafe_allow_html=True,
@@ -458,6 +473,11 @@ st.markdown(
     <section class="section">
         <h2 class="section-title">Data Resources</h2>
         <p class="resource-intro">Access the core datasets and coverage views that support the analytical framework.</p>
+        <p class="resource-intro">
+            <a href="https://raw.githubusercontent.com/apatil210/LDRD3/main/DatasetJune25.xlsx" target="_blank" rel="noopener noreferrer">
+                Download complete dataset here
+            </a>
+        </p>
     </section>
     """,
     unsafe_allow_html=True,
