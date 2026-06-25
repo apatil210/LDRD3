@@ -11,7 +11,7 @@ st.set_page_config(
 pio.templates.default = "plotly"
 
 SHEET_NAME = "Process-level data"
-LOCAL_FILE = "DatasetJune25.xlsx"
+LOCAL_FILE = "https://raw.githubusercontent.com/apatil210/LDRD3/main/DatasetJune25.xlsx"
 
 EXPECTED = {
     "naics_l2": "NAICS Level 2",
@@ -21,33 +21,15 @@ EXPECTED = {
 }
 
 NAICS_COLORS = [
-    "#0F4C5C",
-    "#7A1F1F",
-    "#5C4D7D",
-    "#8A5A00",
-    "#006D5B",
-    "#8C2F39",
-    "#355C7D",
-    "#6B3E26",
-    "#1D3557",
-    "#7F5539",
-    "#6A040F",
-    "#3A5A40",
+    "#0F4C5C", "#7A1F1F", "#5C4D7D", "#8A5A00",
+    "#006D5B", "#8C2F39", "#355C7D", "#6B3E26",
+    "#1D3557", "#7F5539", "#6A040F", "#3A5A40",
 ]
 
 PROCESS_COLORS = [
-    "#7A1F5C",
-    "#A23B72",
-    "#5B2A86",
-    "#8C1C13",
-    "#6C584C",
-    "#2D6A4F",
-    "#8D5524",
-    "#3D405B",
-    "#7B2CBF",
-    "#9C6644",
-    "#6F1D1B",
-    "#386641",
+    "#7A1F5C", "#A23B72", "#5B2A86", "#8C1C13",
+    "#6C584C", "#2D6A4F", "#8D5524", "#3D405B",
+    "#7B2CBF", "#9C6644", "#6F1D1B", "#386641",
 ]
 
 ENERGY_SOURCE_COLORS = {
@@ -104,10 +86,6 @@ def fmt_pj(x):
     return f"{x:,.2f}"
 
 
-def fmt_pct(x):
-    return f"{x:.1f}%"
-
-
 df = load_data()
 cols, missing = resolve_columns(df)
 
@@ -162,13 +140,6 @@ st.markdown(
         margin-bottom: 0.4rem;
     }
 
-    .section-subtitle {
-        font-size: 0.95rem;
-        color: #818191;
-        margin-bottom: 1rem;
-        line-height: 1.4;
-    }
-
     .metric-row {
         display: flex;
         gap: 1rem;
@@ -196,69 +167,6 @@ st.markdown(
         font-weight: 800;
         color: #2f3042;
     }
-
-    div[data-baseweb="select"] > div {
-        background: #ffffff !important;
-        border: 1px solid #dcdde3 !important;
-        border-radius: 10px !important;
-        min-height: 44px;
-        box-shadow: none !important;
-    }
-
-    div[data-baseweb="select"] input {
-        color: #2f3042 !important;
-    }
-
-    .stSelectbox label {
-        color: #4b4c5f !important;
-        font-weight: 500 !important;
-    }
-
-    div[data-testid="stPlotlyChart"] {
-        background: transparent !important;
-        border: none !important;
-        padding: 0 !important;
-    }
-
-    .coverage-note {
-        font-size: 0.95rem;
-        color: #6f7082;
-        margin-top: -0.25rem;
-        margin-bottom: 1rem;
-        line-height: 1.4;
-    }
-
-    @media (max-width: 1100px) {
-        .page-title {
-            font-size: 2.1rem;
-            line-height: 1.18;
-            margin-bottom: 1.35rem;
-        }
-
-        .block-container {
-            padding-top: 2.5rem;
-            padding-left: 1.5rem;
-            padding-right: 1.5rem;
-        }
-    }
-
-    @media (max-width: 640px) {
-        .page-title {
-            font-size: 1.8rem;
-            line-height: 1.2;
-            margin-bottom: 1.1rem;
-        }
-
-        .block-container {
-            padding-top: 2rem;
-            padding-left: 1rem;
-            padding-right: 1rem;
-        }
-
-        .metric-row {
-            gap: 0.75rem;
-        }
-    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -279,7 +187,7 @@ required_min_columns = 52
 if len(df.columns) < required_min_columns:
     st.error(
         "The loaded sheet does not contain enough columns after cleaning. "
-        "This app requires at least Excel columns K, AU, AW, AX, AY, and AZ."
+        "This app requires the June 25 dataset structure."
     )
     st.write("Detected columns:", len(df.columns))
     st.write("Available columns:", list(df.columns))
@@ -290,12 +198,12 @@ naics_l2_col = cols["naics_l2"]
 industrial_process_col = cols["industrial_process"]
 percent_energy_col = cols["percent_energy"]
 
-temperature_col = df.columns[10]
-total_energy_col = df.columns[46]
-electricity_col = df.columns[48]
-fuels_col = df.columns[49]
-steam_col = df.columns[50]
-percent_coverage_col = df.columns[51]
+temperature_col = df.columns[10]          # Process Temperature for Webpage
+total_energy_col = df.columns[33]         # Annual energy demand in 2022
+electricity_col = df.columns[35]          # Annual electricity demand in 2022
+fuels_col = df.columns[36]                # Annual fuels demand in 2022
+steam_col = df.columns[37]                # Annual fuels or electricity for steam...
+percent_coverage_col = df.columns[51]     # Percent Coverage of NAICS (3-digit) Sector
 
 naics_options = sorted(df[naics_l1_col].dropna().astype(str).drop_duplicates().tolist())
 selected_naics = st.selectbox(
@@ -305,9 +213,6 @@ selected_naics = st.selectbox(
 )
 
 df_filtered = df[df[naics_l1_col].astype(str) == str(selected_naics)].copy()
-
-coverage = num(df_filtered[percent_energy_col]).sum()
-coverage_text = f"{coverage:.2%}" if coverage > 0 else "N/A"
 
 percent_coverage = num(df_filtered[percent_coverage_col]).sum()
 percent_coverage_text = f"{percent_coverage:.2%}" if percent_coverage > 0 else "N/A"
@@ -337,10 +242,7 @@ naics_donut_df = naics_donut_df[naics_donut_df["Annual Energy"] > 0].copy()
 naics_donut_df = naics_donut_df.sort_values("Annual Energy", ascending=False)
 
 naics_total = naics_donut_df["Annual Energy"].sum()
-if naics_total > 0:
-    naics_donut_df["Percent"] = (naics_donut_df["Annual Energy"] / naics_total) * 100
-else:
-    naics_donut_df["Percent"] = 0.0
+naics_donut_df["Percent"] = (naics_donut_df["Annual Energy"] / naics_total * 100) if naics_total > 0 else 0.0
 
 process_df = df_filtered[[industrial_process_col, total_energy_col]].copy()
 process_df[total_energy_col] = pd.to_numeric(process_df[total_energy_col], errors="coerce")
