@@ -11,18 +11,7 @@ st.set_page_config(
 pio.templates.default = "plotly"
 
 SHEET_NAME = "Process-level data"
-LOCAL_FILE = "https://raw.githubusercontent.com/apatil210/LDRD3/main/DatasetJune25.xlsx"
-
-EXPECTED_REQUIRED = {
-    "naics_l2": "NAICS Level 2",
-    "naics_l1": "NAICS Level 1",
-    "industrial_process": "Industrial process",
-    "percent_energy": "Percent Annual energy demand in 2022",
-}
-
-OPTIONAL_COLUMNS = {
-    "percent_coverage": "Percent Coverage of NAICS (3-digit) Sector",
-}
+DATA_URL = "https://raw.githubusercontent.com/apatil210/LDRD3/main/DatasetJune25.xlsx"
 
 NAICS_COLORS = [
     "#0F4C5C", "#7A1F1F", "#5C4D7D", "#8A5A00",
@@ -49,14 +38,22 @@ TEMP_COLORS = {
     ">400 °C": "#5B2C6F",
 }
 
-
 def norm(x):
-    return " ".join(str(x).replace("\n", " ").strip().split()).lower()
+    return " ".join(str(x).replace("\n", " ").replace("(", "").replace(")", "").strip().split()).lower()
 
+def pick_col(df, target):
+    matches = [c for c in df.columns if norm(c) == norm(target)]
+    return matches[0] if matches else None
+
+def num(series):
+    return pd.to_numeric(series, errors="coerce").fillna(0)
+
+def fmt_pj(x):
+    return f"{x:,.2f}"
 
 @st.cache_data
 def load_data():
-    df = pd.read_excel(LOCAL_FILE, sheet_name=SHEET_NAME, header=1, engine="openpyxl")
+    df = pd.read_excel(DATA_URL, sheet_name=SHEET_NAME, header=1, engine="openpyxl")
     df.columns = [str(c).strip() for c in df.columns]
 
     if len(df) > 0:
@@ -67,69 +64,47 @@ def load_data():
     df = df.dropna(axis=1, how="all").reset_index(drop=True)
     return df
 
-
-def resolve_required_columns(df):
-    resolved = {}
-    missing = []
-
-    for key, expected_name in EXPECTED_REQUIRED.items():
-        matches = [c for c in df.columns if norm(c) == norm(expected_name)]
-        if matches:
-            resolved[key] = matches[0]
-        else:
-            missing.append(expected_name)
-
-    return resolved, missing
-
-
-def find_optional_column(df, expected_name):
-    matches = [c for c in df.columns if norm(c) == norm(expected_name)]
-    return matches[0] if matches else None
-
-
-def num(series):
-    return pd.to_numeric(series, errors="coerce").fillna(0)
-
-
-def fmt_pj(x):
-    return f"{x:,.2f}"
-
-
 df = load_data()
-cols, missing = resolve_required_columns(df)
+
+naics_l1_col = pick_col(df, "NAICS Level 1")
+naics_l2_col = pick_col(df, "NAICS Level 2")
+industrial_process_col = pick_col(df, "Industrial process")
+percent_energy_col = pick_col(df, "Percent Annual energy demand in 2022")
+temperature_col = pick_col(df, "Process Temperature for Webpage")
+total_energy_col = pick_col(df, "Annual energy demand in 2022")
+electricity_col = pick_col(df, "Annual electricity demand in 2022")
+fuels_col = pick_col(df, "Annual fuels demand in 2022")
+steam_col = pick_col(df, "Annual fuels or electricity for steam or steam from CHP demand in 2022")
+percent_coverage_col = pick_col(df, "Percent Coverage of NAICS 3-digit Sector")
+
+required = {
+    "NAICS Level 1": naics_l1_col,
+    "NAICS Level 2": naics_l2_col,
+    "Industrial process": industrial_process_col,
+    "Percent Annual energy demand in 2022": percent_energy_col,
+    "Process Temperature for Webpage": temperature_col,
+    "Annual energy demand in 2022": total_energy_col,
+    "Annual electricity demand in 2022": electricity_col,
+    "Annual fuels demand in 2022": fuels_col,
+    "Steam demand": steam_col,
+    "Percent Coverage": percent_coverage_col,
+}
+
+missing = [k for k, v in required.items() if v is None]
+
+st.title("US Manufacturing Energy 2022 Classification: NAICS Classification")
 
 if missing:
     st.error("Missing required columns: " + ", ".join(missing))
     st.write("Available columns:", list(df.columns))
     st.stop()
 
-naics_l1_col = cols["naics_l1"]
-naics_l2_col = cols["naics_l2"]
-industrial_process_col = cols["industrial_process"]
-percent_energy_col = cols["percent_energy"]
+naics_options = sorted(df[naics_l1_col].dropna().astype(str).drop_duplicates().tolist())
 
-temperature_col = "Process Temperature for Webpage"
-total_energy_col = "Annual energy demand in 2022"
-electricity_col = "Annual electricity demand in 2022"
-fuels_col = "Annual fuels demand in 2022"
-steam_col = "Annual fuels or electricity for steam or steam from CHP demand in 2022"
-percent_coverage_col = find_optional_column(df, "Percent Coverage of NAICS (3-digit) Sector")
-
-required_direct = [
-    temperature_col,
-    total_energy_col,
-    electricity_col,
-    fuels_col,
-    steam_col,
-]
-
-missing_direct = [c for c in required_direct if c not in df.columns]
-if missing_direct:
-    st.error("Missing required columns: " + ", ".join(missing_direct))
-    st.write("Available columns:", list(df.columns))
+if not naics_options:
+    st.error("No NAICS Level 1 values found.")
     st.stop()
 
-naics_options = sorted(df[naics_l1_col].dropna().astype(str).drop_duplicates().tolist())
 selected_naics = st.selectbox(
     "Select a NAICS Level 1 sector to generate a fact sheet",
     naics_options,
@@ -142,44 +117,44 @@ total_energy = num(df_filtered[total_energy_col]).sum()
 total_electricity = num(df_filtered[electricity_col]).sum()
 total_fuels = num(df_filtered[fuels_col]).sum()
 total_steam = num(df_filtered[steam_col]).sum()
+percent_coverage = num(df_filtered[percent_coverage_col]).sum()
+percent_coverage_text = f"{percent_coverage:.2%}" if percent_coverage > 0 else "N/A"
 
-if percent_coverage_col:
-    percent_coverage = num(df_filtered[percent_coverage_col]).sum()
-    percent_coverage_text = f"{percent_coverage:.2%}" if percent_coverage > 0 else "N/A"
-else:
-    percent_coverage_text = "N/A"
+st.markdown(f"""
+<div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem;">
+    <div style="padding:1rem; border:1px solid #ddd; border-radius:12px;">Total annual energy<br><b>{fmt_pj(total_energy)} PJ</b></div>
+    <div style="padding:1rem; border:1px solid #ddd; border-radius:12px;">Annual electricity<br><b>{fmt_pj(total_electricity)} PJ</b></div>
+    <div style="padding:1rem; border:1px solid #ddd; border-radius:12px;">Annual fuels<br><b>{fmt_pj(total_fuels)} PJ</b></div>
+    <div style="padding:1rem; border:1px solid #ddd; border-radius:12px;">Annual steam<br><b>{fmt_pj(total_steam)} PJ</b></div>
+    <div style="padding:1rem; border:1px solid #ddd; border-radius:12px;">Percent coverage<br><b>{percent_coverage_text}</b></div>
+</div>
+""", unsafe_allow_html=True)
 
-breakdown_df = pd.DataFrame(
-    {
-        "Type": ["Annual Fuels", "Annual Steam", "Annual Electricity"],
-        "Value": [total_fuels, total_steam, total_electricity],
-    }
-)
+breakdown_df = pd.DataFrame({
+    "Type": ["Annual Fuels", "Annual Steam", "Annual Electricity"],
+    "Value": [total_fuels, total_steam, total_electricity],
+})
 breakdown_df = breakdown_df[breakdown_df["Value"] > 0].copy()
 
-naics_donut_df = df_filtered[[naics_l2_col, total_energy_col]].copy()
-naics_donut_df[total_energy_col] = pd.to_numeric(naics_donut_df[total_energy_col], errors="coerce")
 naics_donut_df = (
-    naics_donut_df.dropna(subset=[naics_l2_col, total_energy_col])
+    df_filtered[[naics_l2_col, total_energy_col]]
+    .assign(**{total_energy_col: pd.to_numeric(df_filtered[total_energy_col], errors="coerce")})
+    .dropna(subset=[naics_l2_col, total_energy_col])
     .groupby(naics_l2_col, as_index=False)[total_energy_col]
     .sum()
     .rename(columns={naics_l2_col: "NAICS Level 2", total_energy_col: "Annual Energy"})
 )
-naics_donut_df = naics_donut_df[naics_donut_df["Annual Energy"] > 0].copy()
-naics_donut_df = naics_donut_df.sort_values("Annual Energy", ascending=False)
+naics_donut_df = naics_donut_df[naics_donut_df["Annual Energy"] > 0].sort_values("Annual Energy", ascending=False)
 
-naics_total = naics_donut_df["Annual Energy"].sum()
-
-process_df = df_filtered[[industrial_process_col, total_energy_col]].copy()
-process_df[total_energy_col] = pd.to_numeric(process_df[total_energy_col], errors="coerce")
 process_df = (
-    process_df.dropna(subset=[industrial_process_col, total_energy_col])
+    df_filtered[[industrial_process_col, total_energy_col]]
+    .assign(**{total_energy_col: pd.to_numeric(df_filtered[total_energy_col], errors="coerce")})
+    .dropna(subset=[industrial_process_col, total_energy_col])
     .groupby(industrial_process_col, as_index=False)[total_energy_col]
     .sum()
     .rename(columns={industrial_process_col: "Industrial process", total_energy_col: "Annual Energy"})
 )
-process_df = process_df[process_df["Annual Energy"] > 0].copy()
-process_df = process_df.sort_values("Annual Energy", ascending=False)
+process_df = process_df[process_df["Annual Energy"] > 0].sort_values("Annual Energy", ascending=False)
 
 temp_df = df_filtered[[temperature_col, total_energy_col]].copy()
 temp_df.columns = ["Temperature", "Annual Energy"]
@@ -201,3 +176,35 @@ temp_donut_df = (
     .sum()
 )
 temp_donut_df = temp_donut_df[temp_donut_df["Annual Energy"] > 0].copy()
+
+col1, col2 = st.columns(2)
+
+with col1:
+    if not naics_donut_df.empty:
+        fig = px.pie(
+            naics_donut_df, names="NAICS Level 2", values="Annual Energy",
+            hole=0.62, color="NAICS Level 2", color_discrete_sequence=NAICS_COLORS
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    if not process_df.empty:
+        fig = px.pie(
+            process_df, names="Industrial process", values="Annual Energy",
+            hole=0.62, color="Industrial process", color_discrete_sequence=PROCESS_COLORS
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+with col2:
+    if not breakdown_df.empty:
+        fig = px.pie(
+            breakdown_df, names="Type", values="Value",
+            hole=0.62, color="Type", color_discrete_map=ENERGY_SOURCE_COLORS
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    if not temp_donut_df.empty:
+        fig = px.pie(
+            temp_donut_df, names="Temperature Range", values="Annual Energy",
+            hole=0.62, color="Temperature Range", color_discrete_map=TEMP_COLORS
+        )
+        st.plotly_chart(fig, use_container_width=True)
