@@ -516,6 +516,7 @@ cards_html = "".join(
         <div class="person-body">
             <h3 class="person-name">{c["name"]}</h3>
             <p class="person-title">{c["title"]}</p>
+            <p class="person-email">{c["email"]}</p>
         </div>
     </article>
     '''
