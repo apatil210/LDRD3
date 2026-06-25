@@ -11,52 +11,31 @@ st.set_page_config(
 pio.templates.default = "plotly"
 
 SHEET_NAME = "Process-level data"
-LOCAL_FILE = "https://raw.githubusercontent.com/apatil210/LDRD3/main/DatasetJune25.xlsx"
+LOCAL_FILE = "DatasetJune25.xlsx"
 
 EXPECTED = {
     "naics_l2": "NAICS Level 2",
     "naics_l1": "NAICS Level 1",
     "industrial_process": "Industrial process",
-    "percent_energy": "Percent Annual energy demand in 2022",
     "temperature": "Process Temperature for Webpage",
     "total_energy": "Annual energy demand in 2022",
     "electricity": "Annual electricity demand in 2022",
     "fuels": "Annual fuels demand in 2022",
     "steam": "Annual fuels or electricity for steam or steam from CHP demand in 2022",
-}
-
-OPTIONAL = {
-    "percent_coverage": "Percent Coverage of NAICS (3-digit) Sector"
+    "percent_energy": "Percent Annual energy demand in 2022",
+    "percent_coverage": "Percent Coverage of NAICS (3-digit) Sector",
 }
 
 NAICS_COLORS = [
-    "#0F4C5C",
-    "#7A1F1F",
-    "#5C4D7D",
-    "#8A5A00",
-    "#006D5B",
-    "#8C2F39",
-    "#355C7D",
-    "#6B3E26",
-    "#1D3557",
-    "#7F5539",
-    "#6A040F",
-    "#3A5A40",
+    "#0F4C5C", "#7A1F1F", "#5C4D7D", "#8A5A00",
+    "#006D5B", "#8C2F39", "#355C7D", "#6B3E26",
+    "#1D3557", "#7F5539", "#6A040F", "#3A5A40",
 ]
 
 PROCESS_COLORS = [
-    "#7A1F5C",
-    "#A23B72",
-    "#5B2A86",
-    "#8C1C13",
-    "#6C584C",
-    "#2D6A4F",
-    "#8D5524",
-    "#3D405B",
-    "#7B2CBF",
-    "#9C6644",
-    "#6F1D1B",
-    "#386641",
+    "#7A1F5C", "#A23B72", "#5B2A86", "#8C1C13",
+    "#6C584C", "#2D6A4F", "#8D5524", "#3D405B",
+    "#7B2CBF", "#9C6644", "#6F1D1B", "#386641",
 ]
 
 ENERGY_SOURCE_COLORS = {
@@ -77,6 +56,32 @@ def norm(x):
     return " ".join(str(x).replace("\n", " ").strip().split()).lower()
 
 
+def first_existing_match(df_columns, expected_name):
+    target = norm(expected_name)
+    exact = [c for c in df_columns if norm(c) == target]
+    if exact:
+        return exact[0]
+
+    simplified_target = (
+        target.replace("(", "")
+        .replace(")", "")
+        .replace("-", " ")
+        .replace("/", " ")
+    )
+
+    for c in df_columns:
+        simplified_col = (
+            norm(c).replace("(", "")
+            .replace(")", "")
+            .replace("-", " ")
+            .replace("/", " ")
+        )
+        if simplified_col == simplified_target:
+            return c
+
+    return None
+
+
 @st.cache_data
 def load_data():
     df = pd.read_excel(LOCAL_FILE, sheet_name=SHEET_NAME, header=1, engine="openpyxl")
@@ -91,29 +96,25 @@ def load_data():
     return df
 
 
-def resolve_columns(df, mapping):
+def resolve_columns(df):
     resolved = {}
     missing = []
 
-    for key, expected_name in mapping.items():
-        matches = [c for c in df.columns if norm(c) == norm(expected_name)]
-        if matches:
-            resolved[key] = matches[0]
+    for key, expected_name in EXPECTED.items():
+        match = first_existing_match(df.columns, expected_name)
+        if match:
+            resolved[key] = match
         else:
             missing.append(expected_name)
 
     return resolved, missing
 
 
-def resolve_optional_columns(df, mapping):
-    resolved = {}
-    for key, expected_name in mapping.items():
-        matches = [c for c in df.columns if norm(c) == norm(expected_name)]
-        resolved[key] = matches[0] if matches else None
-    return resolved
-
-
 def num(series):
+    return pd.to_numeric(series, errors="coerce")
+
+
+def num0(series):
     return pd.to_numeric(series, errors="coerce").fillna(0)
 
 
@@ -121,18 +122,12 @@ def fmt_pj(x):
     return f"{x:,.2f}"
 
 
-def build_metric_card(label, value):
-    return f"""
-        <div class=\"metric-card\">
-            <div class=\"metric-label\">{label}</div>
-            <div class=\"metric-value\">{value}</div>
-        </div>
-    """
+def fmt_pct_value(x):
+    return f"{x:.2%}"
 
 
 df = load_data()
-cols, missing = resolve_columns(df, EXPECTED)
-opt_cols = resolve_optional_columns(df, OPTIONAL)
+cols, missing = resolve_columns(df)
 
 st.markdown(
     """
@@ -183,13 +178,6 @@ st.markdown(
         font-weight: 700;
         color: #2f3042;
         margin-bottom: 0.4rem;
-    }
-
-    .section-subtitle {
-        font-size: 0.95rem;
-        color: #818191;
-        margin-bottom: 1rem;
-        line-height: 1.4;
     }
 
     .metric-row {
@@ -243,14 +231,6 @@ st.markdown(
         padding: 0 !important;
     }
 
-    .coverage-note {
-        font-size: 0.95rem;
-        color: #6f7082;
-        margin-top: -0.25rem;
-        margin-bottom: 1rem;
-        line-height: 1.4;
-    }
-
     @media (max-width: 1100px) {
         .page-title {
             font-size: 2.1rem;
@@ -300,15 +280,16 @@ if missing:
 naics_l1_col = cols["naics_l1"]
 naics_l2_col = cols["naics_l2"]
 industrial_process_col = cols["industrial_process"]
-percent_energy_col = cols["percent_energy"]
 temperature_col = cols["temperature"]
 total_energy_col = cols["total_energy"]
 electricity_col = cols["electricity"]
 fuels_col = cols["fuels"]
 steam_col = cols["steam"]
-percent_coverage_col = opt_cols["percent_coverage"]
+percent_energy_col = cols["percent_energy"]
+percent_coverage_col = cols["percent_coverage"]
 
 naics_options = sorted(df[naics_l1_col].dropna().astype(str).drop_duplicates().tolist())
+
 selected_naics = st.selectbox(
     "Select a NAICS Level 1 sector to generate a fact sheet",
     naics_options,
@@ -317,16 +298,24 @@ selected_naics = st.selectbox(
 
 df_filtered = df[df[naics_l1_col].astype(str) == str(selected_naics)].copy()
 
-total_energy = num(df_filtered[total_energy_col]).sum()
-total_electricity = num(df_filtered[electricity_col]).sum()
-total_fuels = num(df_filtered[fuels_col]).sum()
-total_steam = num(df_filtered[steam_col]).sum()
+total_energy = num0(df_filtered[total_energy_col]).sum()
+total_electricity = num0(df_filtered[electricity_col]).sum()
+total_fuels = num0(df_filtered[fuels_col]).sum()
+total_steam = num0(df_filtered[steam_col]).sum()
 
-if percent_coverage_col and percent_coverage_col in df_filtered.columns:
-    percent_coverage = num(df_filtered[percent_coverage_col]).sum()
-    percent_coverage_text = f"{percent_coverage:.2%}" if percent_coverage > 0 else "N/A"
+coverage_series = num(df_filtered[percent_coverage_col]).dropna()
+if not coverage_series.empty:
+    percent_coverage = coverage_series.iloc[0]
+    percent_coverage_text = fmt_pct_value(percent_coverage)
 else:
     percent_coverage_text = "Not available"
+
+energy_share_series = num(df_filtered[percent_energy_col]).dropna()
+if not energy_share_series.empty:
+    total_energy_share = energy_share_series.sum()
+    total_energy_share_text = fmt_pct_value(total_energy_share)
+else:
+    total_energy_share_text = "Not available"
 
 breakdown_df = pd.DataFrame(
     {
@@ -388,21 +377,32 @@ temp_donut_df = temp_donut_df[temp_donut_df["Annual Energy"] > 0].copy()
 st.markdown(
     f"""
     <div class="metric-row">
-        {build_metric_card("Total annual energy", f"{fmt_pj(total_energy)} PJ")}
-        {build_metric_card("Annual electricity", f"{fmt_pj(total_electricity)} PJ")}
-        {build_metric_card("Annual fuels", f"{fmt_pj(total_fuels)} PJ")}
-        {build_metric_card("Annual steam", f"{fmt_pj(total_steam)} PJ")}
-        {build_metric_card("Percent coverage", percent_coverage_text)}
+        <div class="metric-card">
+            <div class="metric-label">Total annual energy</div>
+            <div class="metric-value">{fmt_pj(total_energy)} PJ</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Annual electricity</div>
+            <div class="metric-value">{fmt_pj(total_electricity)} PJ</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Annual fuels</div>
+            <div class="metric-value">{fmt_pj(total_fuels)} PJ</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Annual steam</div>
+            <div class="metric-value">{fmt_pj(total_steam)} PJ</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Percent coverage</div>
+            <div class="metric-value">{percent_coverage_text}</div>
+        </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-if percent_coverage_col is None:
-    st.markdown(
-        '<div class="coverage-note">Percent Coverage of NAICS (3-digit) Sector is not present in this workbook version, so coverage is shown as Not available.</div>',
-        unsafe_allow_html=True,
-    )
+st.caption(f"Selected sector share of total annual energy demand: {total_energy_share_text}")
 
 left_col, right_col = st.columns([1.2, 1.0], gap="large")
 
@@ -574,3 +574,7 @@ with right_col:
         st.plotly_chart(fig_temp, use_container_width=True)
     else:
         st.info("No annual energy by temperature data is available for this selection.")
+
+with st.expander("Debug: resolved columns"):
+    st.write(cols)
+    st.write(df_filtered[[naics_l1_col, naics_l2_col, percent_coverage_col]].head(10))
