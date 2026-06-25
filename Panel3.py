@@ -1,11 +1,14 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.io as pio
 
 st.set_page_config(
     page_title="US Manufacturing Energy 2022 Classification: Unit Operations",
     layout="wide",
 )
+
+pio.templates.default = "plotly"
 
 SHEET_NAME = "Process-level data"
 LOCAL_FILE = "DatasetJune24Part2.xlsx"
@@ -15,6 +18,49 @@ EXPECTED = {
     "naics_l1": "NAICS Level 1",
     "industrial_process": "Industrial process",
     "percent_energy": "Percent Annual energy demand in 2022",
+}
+
+NAICS_COLORS = [
+    "#0F4C5C",
+    "#7A1F1F",
+    "#5C4D7D",
+    "#8A5A00",
+    "#006D5B",
+    "#8C2F39",
+    "#355C7D",
+    "#6B3E26",
+    "#1D3557",
+    "#7F5539",
+    "#6A040F",
+    "#3A5A40",
+]
+
+PROCESS_COLORS = [
+    "#7A1F5C",
+    "#A23B72",
+    "#5B2A86",
+    "#8C1C13",
+    "#6C584C",
+    "#2D6A4F",
+    "#8D5524",
+    "#3D405B",
+    "#7B2CBF",
+    "#9C6644",
+    "#6F1D1B",
+    "#386641",
+]
+
+ENERGY_SOURCE_COLORS = {
+    "Annual Fuels": "#C05A00",
+    "Annual Steam": "#355C9A",
+    "Annual Electricity": "#1F8A4C",
+}
+
+TEMP_COLORS = {
+    "<100 °C": "#2A9D8F",
+    "100-200 °C": "#B9770E",
+    "200-400 °C": "#C0392B",
+    ">400 °C": "#5B2C6F",
 }
 
 
@@ -228,7 +274,7 @@ if missing:
     st.write("Available columns:", list(df.columns))
     st.stop()
 
-required_min_columns = 51  # up to Excel AY -> zero-based index 50
+required_min_columns = 51
 
 if len(df.columns) < required_min_columns:
     st.error(
@@ -244,11 +290,11 @@ naics_l2_col = cols["naics_l2"]
 industrial_process_col = cols["industrial_process"]
 percent_energy_col = cols["percent_energy"]
 
-temperature_col = df.columns[10]   # Excel column K
-total_energy_col = df.columns[46]  # Excel column AU
-electricity_col = df.columns[48]   # Excel column AW
-fuels_col = df.columns[49]         # Excel column AX
-steam_col = df.columns[50]         # Excel column AY
+temperature_col = df.columns[10]
+total_energy_col = df.columns[46]
+electricity_col = df.columns[48]
+fuels_col = df.columns[49]
+steam_col = df.columns[50]
 
 naics_options = sorted(df[naics_l1_col].dropna().astype(str).drop_duplicates().tolist())
 selected_naics = st.selectbox(
@@ -352,7 +398,7 @@ left_col, right_col = st.columns([1.2, 1.0], gap="large")
 
 with left_col:
     st.markdown(
-        '<div class="section-title">Total Annual Energy Breakdown: NAICS 6-digit Code</div>',
+        '<div class="section-title">Total Annual Energy Breakdown: NAICS Level 2</div>',
         unsafe_allow_html=True,
     )
 
@@ -362,7 +408,8 @@ with left_col:
             names="NAICS Level 2",
             values="Annual Energy",
             hole=0.62,
-            color_discrete_sequence=px.colors.sequential.Tealgrn,
+            color="NAICS Level 2",
+            color_discrete_sequence=NAICS_COLORS,
         )
         fig_naics.update_traces(
             textinfo="percent+label",
@@ -403,7 +450,8 @@ with left_col:
             names="Industrial process",
             values="Annual Energy",
             hole=0.62,
-            color_discrete_sequence=px.colors.sequential.RdPu,
+            color="Industrial process",
+            color_discrete_sequence=PROCESS_COLORS,
         )
         fig_process.update_traces(
             textinfo="percent+label",
@@ -446,11 +494,7 @@ with right_col:
             values="Value",
             hole=0.62,
             color="Type",
-            color_discrete_map={
-                "Annual Fuels": "#f58600",
-                "Annual Steam": "#5b74b2",
-                "Annual Electricity": "#2fb36d",
-            },
+            color_discrete_map=ENERGY_SOURCE_COLORS,
         )
         fig_donut.update_traces(
             textinfo="percent+label",
@@ -491,12 +535,7 @@ with right_col:
             values="Annual Energy",
             hole=0.62,
             color="Temperature Range",
-            color_discrete_map={
-                "<100 °C": "#70c1b3",
-                "100-200 °C": "#f6bd60",
-                "200-400 °C": "#f28482",
-                ">400 °C": "#6d597a",
-            },
+            color_discrete_map=TEMP_COLORS,
         )
         fig_temp.update_traces(
             textinfo="percent+label",
