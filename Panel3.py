@@ -186,6 +186,7 @@ with col1:
             hole=0.62, color="NAICS Level 2", color_discrete_sequence=NAICS_COLORS,
             title="NAICS 6--digit Subsectors Within",
         )
+        fig.update_layout(title_x=0.5)
         st.plotly_chart(fig, use_container_width=True)
 
     if not process_df.empty:
@@ -194,6 +195,7 @@ with col1:
             hole=0.62, color="Industrial process", color_discrete_sequence=PROCESS_COLORS,
             title="Industry Sectors Within",
         )
+        fig.update_layout(title_x=0.5)
         st.plotly_chart(fig, use_container_width=True)
 
 with col2:
@@ -203,6 +205,7 @@ with col2:
             hole=0.62, color="Type", color_discrete_map=ENERGY_SOURCE_COLORS,
             title="Distribution by Energy Source",
         )
+        fig.update_layout(title_x=0.5)
         st.plotly_chart(fig, use_container_width=True)
 
     if not temp_donut_df.empty:
@@ -211,4 +214,5 @@ with col2:
             hole=0.62, color="Temperature Range", color_discrete_map=TEMP_COLORS,
             title="Distribution by Process Temperature",
         )
+        fig.update_layout(title_x=0.5)
         st.plotly_chart(fig, use_container_width=True)
