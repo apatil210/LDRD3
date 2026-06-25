@@ -183,7 +183,8 @@ with col1:
     if not naics_donut_df.empty:
         fig = px.pie(
             naics_donut_df, names="NAICS Level 2", values="Annual Energy",
-            hole=0.62, color="NAICS Level 2", color_discrete_sequence=NAICS_COLORS
+            hole=0.62, color="NAICS Level 2", color_discrete_sequence=NAICS_COLORS,
+            title="A) NAICS Subsectors Within",
         )
         st.plotly_chart(fig, use_container_width=True)
 
