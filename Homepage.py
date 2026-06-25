@@ -11,25 +11,25 @@ contributors = [
         "name": "Akash Patil",
         "title": "Postdoctoral Researcher, Energy Analysis Division",
         "email": "apatil2@lbl.gov",
-        "photo": "https://raw.githubusercontent.com/apatil210/LDRD2/main/Akashpic2.jpg",
+        "photo": "https://raw.githubusercontent.com/apatil210/LDRD3/main/Akashpic2.jpg",
     },
     {
         "name": "Jibran Zuberi",
         "title": "Energy/Environmental Policy Research Scientist/Engineer, Energy Analysis Division",
         "email": "mjszuberi@lbl.gov",
-        "photo": "https://raw.githubusercontent.com/apatil210/LDRD2/main/Jibran.jpg",
+        "photo": "https://raw.githubusercontent.com/apatil210/LDRD3/main/Jibran.jpg",
     },
     {
         "name": "Prakash Rao",
         "title": "Head · Building & Industrial Applications Department",
         "email": "<prao@lbl.gov",
-        "photo": "https://raw.githubusercontent.com/apatil210/LDRD2/main/Prakash.jpg",
+        "photo": "https://raw.githubusercontent.com/apatil210/LDRD3/main/Prakash.jpg",
     },
     {
         "name": "Unique Karki",
         "title": "Technology Researcher II · Building & Industrial Energy Systems Division",
         "email": "ukarki@lbl.gov",
-        "photo": "https://raw.githubusercontent.com/apatil210/LDRD2/main/Unique.jpg",
+        "photo": "https://raw.githubusercontent.com/apatil210/LDRD3/main/Unique.jpg",
     },
 ]
 
