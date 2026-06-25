@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.io as pio
 
 st.set_page_config(
-    page_title="US Manufacturing Energy 2022 Classification: Unit Operations",
+    page_title="US Manufacturing Energy 2022 Classification: NAICS Classification",
     layout="wide",
 )
 
@@ -265,7 +265,7 @@ st.markdown(
 )
 
 st.markdown(
-    '<div class="page-title">US Manufacturing Energy 2022 Classification: Unit Operations</div>',
+    '<div class="page-title">US Manufacturing Energy 2022 Classification: NAICS Classification</div>',
     unsafe_allow_html=True,
 )
 
