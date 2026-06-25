@@ -398,7 +398,7 @@ left_col, right_col = st.columns([1.2, 1.0], gap="large")
 
 with left_col:
     st.markdown(
-        '<div class="section-title">Total Annual Energy Breakdown: NAICS Level 2</div>',
+        '<div class="section-title">Total Annual Energy Breakdown: NAICS 6-digit Subsectors</div>',
         unsafe_allow_html=True,
     )
 
