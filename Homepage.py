@@ -10,7 +10,7 @@ contributors = [
     {
         "name": "Akash Patil",
         "title": "Postdoctoral Researcher, Energy Analysis Division",
-        "title": "apatil2@lbl.gov"
+        "email": "apatil2@lbl.gov"
         "photo": "https://raw.githubusercontent.com/apatil210/LDRD2/main/Akashpic2.jpg",
     },
     {
