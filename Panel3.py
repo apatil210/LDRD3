@@ -107,7 +107,7 @@ required = {
     "Annual electricity demand in 2022": electricity_col,
     "Annual fuels demand in 2022": fuels_col,
     "Steam demand": steam_col,
-    "Database Coverage": percent_coverage_col,
+    "Percent Coverage": percent_coverage_col,
 }
 
 missing = [k for k, v in required.items() if v is None]
@@ -146,7 +146,7 @@ st.markdown(f"""
     <div style="padding:1rem; border:1px solid #ddd; border-radius:12px;">Annual electricity<br><b>{fmt_pj(total_electricity)} PJ</b></div>
     <div style="padding:1rem; border:1px solid #ddd; border-radius:12px;">Annual fuels<br><b>{fmt_pj(total_fuels)} PJ</b></div>
     <div style="padding:1rem; border:1px solid #ddd; border-radius:12px;">Annual steam<br><b>{fmt_pj(total_steam)} PJ</b></div>
-    <div style="padding:1rem; border:1px solid #ddd; border-radius:12px;">Percent coverage<br><b>{percent_coverage_text}</b></div>
+    <div style="padding:1rem; border:1px solid #ddd; border-radius:12px;">Database coverage<br><b>{percent_coverage_text}</b></div>
 </div>
 """, unsafe_allow_html=True)
 
