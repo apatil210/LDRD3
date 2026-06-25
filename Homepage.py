@@ -474,7 +474,7 @@ st.markdown(
         <h2 class="section-title">Data Resources</h2>
         <p class="resource-intro">Access the core datasets and coverage views that support the analytical framework.</p>
         <p class="resource-intro">
-            <a href="https://raw.githubusercontent.com/apatil210/LDRD3/main/DatasetJune25.xlsx" target="_blank" rel="noopener noreferrer">
+            <a href="https://raw.githubusercontent.com/apatil210/LDRD3/main/DatasetJune25.xlsx" target="_self" rel="noopener noreferrer">
                 Clcik here to download spreasheet for the 2022 manufacuring energy data
             </a>
         </p>
@@ -513,7 +513,7 @@ for col, kicker, title, copy, url in cards:
     with col:
         st.markdown(
             f'''
-            <a class="nav-link" href="{url}" target="_blank" rel="noopener noreferrer">
+            <a class="nav-link" href="{url}" target="_self" rel="noopener noreferrer">
                 <article class="nav-card">
                     <div>
                         <div class="nav-kicker">{kicker}</div>
