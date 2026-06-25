@@ -198,8 +198,8 @@ st.markdown(
     }
 
     div[data-baseweb="select"] > div {
-        background: #ffffff !important;
-        border: 1px solid #dcdde3 !important;
+        background: #f3f3f8 !important;
+        border: 1px solid #ececf3 !important;
         border-radius: 10px !important;
         min-height: 44px;
         box-shadow: none !important;
@@ -209,9 +209,13 @@ st.markdown(
         color: #2f3042 !important;
     }
 
+    div[data-baseweb="select"] svg {
+        color: #2f3042 !important;
+    }
+
     .stSelectbox label {
-        color: #4b4c5f !important;
-        font-weight: 500 !important;
+        color: #2f3042 !important;
+        font-weight: 400 !important;
     }
 
     div[data-testid="stPlotlyChart"] {
