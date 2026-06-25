@@ -11,7 +11,7 @@ st.set_page_config(
 pio.templates.default = "plotly"
 
 SHEET_NAME = "Process-level data"
-LOCAL_FILE = "DatasetJune25.xlsx"
+LOCAL_FILE = "DatasetJune24Part2.xlsx"
 
 EXPECTED = {
     "naics_l2": "NAICS Level 2",
@@ -274,12 +274,12 @@ if missing:
     st.write("Available columns:", list(df.columns))
     st.stop()
 
-required_min_columns = 51
+required_min_columns = 52
 
 if len(df.columns) < required_min_columns:
     st.error(
         "The loaded sheet does not contain enough columns after cleaning. "
-        "This app requires at least Excel columns K, AU, AW, AX, and AY."
+        "This app requires at least Excel columns K, AU, AW, AX, AY, and AZ."
     )
     st.write("Detected columns:", len(df.columns))
     st.write("Available columns:", list(df.columns))
@@ -295,6 +295,7 @@ total_energy_col = df.columns[46]
 electricity_col = df.columns[48]
 fuels_col = df.columns[49]
 steam_col = df.columns[50]
+percent_coverage_col = df.columns[51]
 
 naics_options = sorted(df[naics_l1_col].dropna().astype(str).drop_duplicates().tolist())
 selected_naics = st.selectbox(
@@ -305,7 +306,12 @@ selected_naics = st.selectbox(
 
 df_filtered = df[df[naics_l1_col].astype(str) == str(selected_naics)].copy()
 
-coverage = num(df_filtered[percent_energy_col]).sum() * 100
+coverage = num(df_filtered[percent_energy_col]).sum()
+coverage_text = f"{coverage:.2%}" if coverage > 0 else "N/A"
+
+percent_coverage = num(df_filtered[percent_coverage_col]).sum()
+percent_coverage_text = f"{percent_coverage:.2%}" if percent_coverage > 0 else "N/A"
+
 total_energy = num(df_filtered[total_energy_col]).sum()
 total_electricity = num(df_filtered[electricity_col]).sum()
 total_fuels = num(df_filtered[fuels_col]).sum()
@@ -389,7 +395,7 @@ st.markdown(
         </div>
         <div class="metric-card">
             <div class="metric-label">Percent coverage</div>
-            <div class="metric-value">{fmt_pct(coverage)}</div>
+            <div class="metric-value">{percent_coverage_text}</div>
         </div>
     </div>
     """,
