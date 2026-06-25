@@ -107,7 +107,7 @@ required = {
     "Annual electricity demand in 2022": electricity_col,
     "Annual fuels demand in 2022": fuels_col,
     "Steam demand": steam_col,
-    "Percent Coverage": percent_coverage_col,
+    "Database Coverage": percent_coverage_col,
 }
 
 missing = [k for k, v in required.items() if v is None]
