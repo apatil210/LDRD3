@@ -228,13 +228,7 @@ if missing:
     st.write("Available columns:", list(df.columns))
     st.stop()
 
-# Required positional columns:
-# K  -> temperature
-# AU -> total annual energy
-# AW -> annual electricity
-# AX -> annual fuels
-# AY -> annual steam
-required_min_columns = 51  # AY is the 51st Excel column -> zero-based index 50
+required_min_columns = 51  # up to Excel AY -> zero-based index 50
 
 if len(df.columns) < required_min_columns:
     st.error(
@@ -404,10 +398,8 @@ with left_col:
     )
 
     if not process_df.empty:
-        top_process = process_df.head(8).copy()
-
         fig_process = px.pie(
-            top_process,
+            process_df,
             names="Industrial process",
             values="Annual Energy",
             hole=0.62,
@@ -421,7 +413,7 @@ with left_col:
             hovertemplate="<b>%{label}</b><br>%{value:.2f} PJ<extra></extra>",
         )
         fig_process.update_layout(
-            height=360,
+            height=420,
             paper_bgcolor="#ffffff",
             plot_bgcolor="#ffffff",
             margin=dict(t=0, b=10, l=10, r=10),
@@ -431,7 +423,7 @@ with left_col:
         fig_process.add_annotation(
             x=0.5,
             y=0.5,
-            text=f"<b>Total (PJ/yr)</b><br>{fmt_pj(top_process['Annual Energy'].sum())}",
+            text=f"<b>Total (PJ/yr)</b><br>{fmt_pj(process_df['Annual Energy'].sum())}",
             showarrow=False,
             font=dict(size=15, color="#2f3042"),
             xanchor="center",
