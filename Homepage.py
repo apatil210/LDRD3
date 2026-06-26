@@ -475,7 +475,7 @@ st.markdown(
         <p class="resource-intro">Access the core datasets and coverage views that support the analytical framework.</p>
         <p class="resource-intro">
             <a href="https://raw.githubusercontent.com/apatil210/LDRD3/main/DatasetJune25.xlsx" target="_blank" rel="noopener noreferrer">
-                Clcik here to download spreasheet for the 2022 manufacuring energy data
+                Click here to download spreasheet for the 2022 manufacuring energy data
             </a>
         </p>
     </section>
